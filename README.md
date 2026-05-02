@@ -27,6 +27,8 @@ C Code Lab is a full-stack coding practice platform for C programming with:
 
   Very old browsers (for example IE11) are **not** supported by React 19; legacy output covers widely used evergreen and mobile Safari-class engines.
 
+Staff **Student Question Completion**: the deployed SPA (`backend/dist`) shows **one row per student** — **Completed** (distinct questions with at least one correct attempt), **Total** (size of the question bank), and **Progress** (%). If you rebuild the frontend from source, replicate that aggregation in your staff/admin page or re-copy the patched bundle.
+
 ## Compiler and Judge
 
 C code is compiled and executed by the backend judge (`backend/app/routers/judge.py`).
