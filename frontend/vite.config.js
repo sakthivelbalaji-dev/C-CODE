@@ -16,6 +16,12 @@ import { defineConfig } from "vite";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
+  /** Production SPA uses `/api` (same origin as FastAPI). Local `vite` dev proxies to backend. */
+  server: {
+    proxy: {
+      "/api": { target: "http://127.0.0.1:8000", changeOrigin: true },
+    },
+  },
   plugins: [
     react(),
     legacy({

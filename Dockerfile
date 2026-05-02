@@ -18,4 +18,5 @@ ENV SKIP_FRONTEND_BUILD=1
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}"]
+# Trust Railway/load-balancer forwarded headers (scheme, host) for redirects and tooling.
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080} --proxy-headers --forwarded-allow-ips='*'"]

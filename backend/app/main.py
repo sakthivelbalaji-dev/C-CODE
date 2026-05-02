@@ -128,10 +128,12 @@ async def browser_compat_headers(request: Request, call_next):
     return response
 
 
+# Same-origin SPA uses fetch() without cookies → allow_credentials=False avoids CORS edge cases
+# across browsers (wildcard origin + credentials is invalid for some clients).
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
