@@ -1,0 +1,9 @@
+# Bundlers / Autoprefixer baseline for C Code Lab SPA (edit if you need IE11 — use @vitejs/plugin-legacy targets instead).
+defaults
+maintained node versions
+Chrome >= 73
+Edge >= 79
+Firefox >= 67
+Safari >= 12.1
+iOS >= 12
+not dead

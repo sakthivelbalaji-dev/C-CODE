@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -114,6 +114,19 @@ def _auto_seed_questions_if_empty() -> None:
 _auto_seed_questions_if_empty()
 
 app = FastAPI(title="C Code Lab API", version="1.0.0")
+
+
+@app.middleware("http")
+async def browser_compat_headers(request: Request, call_next):
+    """Consistent MIME/referrer behaviour across Chromium, Safari, Firefox, Edge."""
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    ctype = response.headers.get("content-type", "")
+    if "text/html" in ctype.lower():
+        response.headers.setdefault("Cache-Control", "no-cache")
+    return response
+
 
 app.add_middleware(
     CORSMiddleware,

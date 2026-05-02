@@ -13,6 +13,20 @@ C Code Lab is a full-stack coding practice platform for C programming with:
 - Database: PostgreSQL only (`DATABASE_URL` required)
 - Dev tooling: ESLint, PostCSS, concurrently
 
+## Browser support
+
+- **Deployed HTML** (`backend/dist/index.html`): viewport/referrer/X-UA-Compatible meta, `<noscript>` fallback, and `nomodule` messaging for browsers without ES module support.
+- **HTTP responses** (`app/main.py`): `X-Content-Type-Options: nosniff`, `Referrer-Policy`, and `Cache-Control: no-cache` for HTML (reduces stale-shell issues after deploy).
+- **Rebuild the SPA** for maximum reach: `frontend/vite.config.js` enables **`@vitejs/plugin-legacy`** (polyfills + legacy bundles). After pulling, run in `frontend/`:
+
+  ```bash
+  npm i -D @vitejs/plugin-legacy terser
+  ```
+
+  Then `npm run build` from the repo root (or `frontend`). If you already maintain your own `vite.config`, merge the `legacy` plugin and `build.outDir` → `../backend/dist` as before.
+
+  Very old browsers (for example IE11) are **not** supported by React 19; legacy output covers widely used evergreen and mobile Safari-class engines.
+
 ## Compiler and Judge
 
 C code is compiled and executed by the backend judge (`backend/app/routers/judge.py`).
