@@ -5,19 +5,18 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# Install gcc for C judge
+# Install gcc + build tools (FIXED SYNTAX)
 
 RUN apt-get update 
 && apt-get install -y --no-install-recommends gcc build-essential 
 && rm -rf /var/lib/apt/lists/*
-
 
 # Install Python dependencies
 
 COPY backend/requirements.txt /app/backend/requirements.txt
 RUN pip install --no-cache-dir -r /app/backend/requirements.txt
 
-# Copy backend (includes dist folder)
+# Copy backend (includes dist/)
 
 COPY backend /app/backend
 
