@@ -29,6 +29,8 @@ C Code Lab is a full-stack coding practice platform for C programming with:
 
 Staff **Student Question Completion**: the deployed SPA (`backend/dist`) shows **one row per student** — **Completed** (distinct questions with at least one correct attempt), **Total** (size of the question bank), and **Progress** (%). If you rebuild the frontend from source, replicate that aggregation in your staff/admin page or re-copy the patched bundle.
 
+**New questions alert (students):** `GET /api/questions/catalog-updates` returns how many questions were added after a client watermark (`since` ISO timestamp). The bundled student dashboard stores `ccodelab_q_cat_ack` in `localStorage` and shows an in-app banner when staff POSTs new rows. Rebuild the SPA from source if you need the same behaviour outside `backend/dist`.
+
 ## Compiler and Judge
 
 C code is compiled and executed by the backend judge (`backend/app/routers/judge.py`).

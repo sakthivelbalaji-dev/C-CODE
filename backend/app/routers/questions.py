@@ -1,12 +1,20 @@
+from datetime import datetime
 from typing import List
 import json
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import Attempt, Question, Student
-from ..schemas import EfficientSolutionOut, QuestionCreate, QuestionOut, ResumeProgressOut
+from ..schemas import (
+    CatalogUpdatesOut,
+    EfficientSolutionOut,
+    QuestionCreate,
+    QuestionOut,
+    ResumeProgressOut,
+)
 from ..syllabus import module_order_case
 
 router = APIRouter(prefix="/questions", tags=["questions"])
@@ -53,6 +61,34 @@ def list_questions(module: str | None = None, difficulty: str | None = None, db:
         query = query.filter(Question.difficulty == difficulty.lower())
     questions = query.order_by(module_order_case(Question.module), Question.id.asc()).all()
     return [_serialize_question(question) for question in questions]
+
+
+@router.get("/catalog-updates", response_model=CatalogUpdatesOut)
+def catalog_updates(since: datetime | None = Query(None), db: Session = Depends(get_db)):
+    """Watermark new rows by ``Question.created_at`` so students see a dashboard notice after staff POST /questions."""
+    newest = db.query(func.max(Question.created_at)).scalar()
+    if newest is None:
+        return CatalogUpdatesOut(new_count=0, newest_catalog_at=None, new_titles=[])
+
+    if since is None:
+        return CatalogUpdatesOut(new_count=0, newest_catalog_at=newest, new_titles=[])
+
+    newer_count = int(
+        db.query(func.count(Question.id)).filter(Question.created_at > since).scalar() or 0
+    )
+    sample = (
+        db.query(Question)
+        .filter(Question.created_at > since)
+        .order_by(Question.created_at.desc())
+        .limit(10)
+        .all()
+    )
+
+    return CatalogUpdatesOut(
+        new_count=newer_count,
+        newest_catalog_at=newest,
+        new_titles=[question.title for question in sample],
+    )
 
 
 @router.get("/resume/next", response_model=ResumeProgressOut)

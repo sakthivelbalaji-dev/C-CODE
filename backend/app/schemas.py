@@ -58,6 +58,14 @@ class QuestionOut(QuestionBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class CatalogUpdatesOut(BaseModel):
+    """New questions added after optional client watermark (staff additions)."""
+
+    new_count: int
+    newest_catalog_at: datetime | None = None
+    new_titles: list[str] = Field(default_factory=list)
+
+
 class AttemptCreate(BaseModel):
     """Client always sends full submission text; persistence rules are applied in the router."""
 
