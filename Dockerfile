@@ -5,18 +5,10 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# Install gcc + build tools (FIXED SYNTAX)
-
-RUN apt-get update 
-&& apt-get install -y --no-install-recommends gcc build-essential 
-&& rm -rf /var/lib/apt/lists/*
-
-# Install Python dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends gcc build-essential && rm -rf /var/lib/apt/lists/*
 
 COPY backend/requirements.txt /app/backend/requirements.txt
 RUN pip install --no-cache-dir -r /app/backend/requirements.txt
-
-# Copy backend (includes dist/)
 
 COPY backend /app/backend
 
