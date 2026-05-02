@@ -124,6 +124,9 @@ npm run build
   - Must list **exactly two** comma-separated institutional emails. Only those addresses may use **Staff signup** or **Staff login**. Students use **Student** tab only; any other staff email gets `403`.
   - Defaults in code: `hod.aids@rajalakshmi.edu.in`, `staff.aids@rajalakshmi.edu.in`. Override on Railway by setting this variable if you ever change addresses.
   - Example: `STAFF_EMAIL_ALLOWLIST=hod.aids@rajalakshmi.edu.in,staff.aids@rajalakshmi.edu.in`
+- `AUTO_SEED_QUESTIONS` (default **on**)
+  - On app startup, if the **`questions`** table has **zero** rows, the server inserts the full **110** topic-based syllabus set (same as `python seed_topic_questions.py` without `--reset`).
+  - Set to `0` / `false` / `no` if you want an empty bank and will load questions yourself (SQL or CLI).
 
 Optional: **`backend/scripts/provision_staff.py`** can create the two rows with a preset password instead of staff using Sign up:
 
@@ -131,13 +134,13 @@ Optional: **`backend/scripts/provision_staff.py`** can create the two rows with 
 cd backend && python scripts/provision_staff.py --password "YOUR_STRONG_INITIAL_PASSWORD"
 ```
 
-**Syllabus questions (5 per topic, 110 total):** with `DATABASE_URL` set (e.g. Railway Postgres), run from `backend/`:
+**Syllabus questions (5 per topic, 110 total):** on a **fresh** empty database, the app **auto-seeds** these on first startup (see `AUTO_SEED_QUESTIONS`). To re-run or wipe manually with `DATABASE_URL` set, from `backend/`:
 
 ```bash
 python seed_topic_questions.py --reset
 ```
 
-`--reset` deletes all attempts and questions, then inserts the full set aligned with *C Foundation -- Updated.pdf* phases in `seed_syllabus_questions.py`. Omit `--reset` to only append titles that are not already present.
+`--reset` deletes all attempts and questions, then inserts the full set. Omit `--reset` to only append titles that are not already present.
 
 ## API and Frontend Integration
 

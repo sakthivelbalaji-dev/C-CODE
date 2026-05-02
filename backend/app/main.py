@@ -90,6 +90,29 @@ prepare_frontend_dist()
 Base.metadata.create_all(bind=engine)
 ensure_schema_updates()
 
+
+def _auto_seed_questions_if_empty() -> None:
+    """Fresh Postgres / Railway: populate questions like we auto-build frontend dist."""
+    if os.getenv("AUTO_SEED_QUESTIONS", "1").strip().lower() in ("0", "false", "no"):
+        logger.info("AUTO_SEED_QUESTIONS is off; skip empty-table question seed.")
+        return
+    from .database import SessionLocal
+    from .topic_question_seeds import maybe_seed_topic_questions_if_empty
+
+    db = SessionLocal()
+    try:
+        added = maybe_seed_topic_questions_if_empty(db)
+        if added:
+            logger.info("Questions table was empty: auto-seeded %d row(s).", added)
+    except Exception:
+        logger.exception("Auto-seed questions failed; continuing startup.")
+        db.rollback()
+    finally:
+        db.close()
+
+
+_auto_seed_questions_if_empty()
+
 app = FastAPI(title="C Code Lab API", version="1.0.0")
 
 app.add_middleware(
