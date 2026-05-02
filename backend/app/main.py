@@ -128,12 +128,20 @@ async def browser_compat_headers(request: Request, call_next):
     return response
 
 
-# Same-origin SPA uses fetch() without cookies → allow_credentials=False avoids CORS edge cases
-# across browsers (wildcard origin + credentials is invalid for some clients).
+# CORS: `allow_credentials=True` is invalid with allow_origins=["*"] — browsers enforce that.
+# Default: wildcard, no credentials. Set CORS_ALLOWED_ORIGINS=comma,separated URLs to allow credentialed cross-origin.
+_cors_origins_env = os.getenv("CORS_ALLOWED_ORIGINS", "").strip()
+if _cors_origins_env:
+    _cors_origins = [o.strip() for o in _cors_origins_env.split(",") if o.strip()]
+    _cors_credentials = True
+else:
+    _cors_origins = ["*"]
+    _cors_credentials = False
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origins=_cors_origins or ["*"],
+    allow_credentials=_cors_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -155,10 +163,11 @@ def health_check():
 
 
 @app.get("/{full_path:path}")
-def spa_fallback(full_path: str):
+async def serve_spa(full_path: str):
+    """SPA deep links (/login etc.); `/api/*` stays on API router (avoid catching unknown API paths here)."""
     if full_path.startswith("api"):
         raise HTTPException(status_code=404, detail="API route not found")
-    if INDEX_FILE.exists():
+    if INDEX_FILE.is_file():
         return FileResponse(str(INDEX_FILE))
     return {"status": "ok", "message": "C Code Lab backend is running"}
 
