@@ -9,13 +9,15 @@ lerna-debug.log*
 
 node_modules
 
-# Ignore only frontend build (NOT backend/dist)
+# Build outputs
+dist
+!backend/dist
 frontend/dist
 dist-ssr
 *.local
 .env
 
-# Editor directories and files
+# Editor files
 .vscode/*
 !.vscode/extensions.json
 .idea
