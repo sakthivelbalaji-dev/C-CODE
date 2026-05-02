@@ -131,6 +131,14 @@ Optional: **`backend/scripts/provision_staff.py`** can create the two rows with 
 cd backend && python scripts/provision_staff.py --password "YOUR_STRONG_INITIAL_PASSWORD"
 ```
 
+**Syllabus questions (5 per topic, 110 total):** with `DATABASE_URL` set (e.g. Railway Postgres), run from `backend/`:
+
+```bash
+python seed_topic_questions.py --reset
+```
+
+`--reset` deletes all attempts and questions, then inserts the full set aligned with *C Foundation -- Updated.pdf* phases in `seed_syllabus_questions.py`. Omit `--reset` to only append titles that are not already present.
+
 ## API and Frontend Integration
 
 - All backend routes are prefixed with `/api`.
