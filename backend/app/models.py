@@ -31,6 +31,7 @@ class Question(Base):
     sample_input = Column(Text, nullable=True)
     expected_output = Column(Text, nullable=True)
     examples_json = Column(Text, nullable=True)
+    # JSON array of {"input", "output", "is_hidden"?}; omitted is_hidden defaults to public.
     test_cases_json = Column(Text, nullable=True)
     time_limit_minutes = Column(Integer, nullable=False, default=15)
     algorithm_hint = Column(Text, nullable=True)

@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Question
 from ..schemas import JudgeCaseResult, JudgeRequest, JudgeResponse
+from ..test_case_policy import is_hidden_test_case
 
 router = APIRouter(prefix="/judge", tags=["judge"])
 
@@ -47,9 +48,18 @@ def judge_c_code(payload: JudgeRequest, db: Session = Depends(get_db)):
         if not question:
             raise HTTPException(status_code=404, detail="Question not found")
 
-    test_cases = list(payload.test_cases)
+    test_cases_raw = list(payload.test_cases)
     if question:
-        test_cases = json.loads(question.test_cases_json or "[]")
+        test_cases_raw = json.loads(question.test_cases_json or "[]")
+        if not isinstance(test_cases_raw, list):
+            test_cases_raw = []
+
+    mode = (payload.mode or "run").strip().lower()
+    submit_mode = mode == "submit"
+
+    eval_cases = [c for c in test_cases_raw if isinstance(c, dict)]
+    if question and not submit_mode:
+        eval_cases = [c for c in eval_cases if not is_hidden_test_case(c)]
 
     with tempfile.TemporaryDirectory(prefix="ccodelab_") as temp_dir:
         source_file = Path(temp_dir) / "main.c"
@@ -72,20 +82,20 @@ def judge_c_code(payload: JudgeRequest, db: Session = Depends(get_db)):
             custom_output = _run_binary(binary_file, payload.custom_input)
 
         case_results: list[JudgeCaseResult] = []
-        hide_case_details = question is not None
-        for index, case in enumerate(test_cases):
+        for index, case in enumerate(eval_cases):
             case_input = str(case.get("input", ""))
             expected_output = str(case.get("output", "")).strip()
             got_output = _run_binary(binary_file, case_input).strip()
             passed = got_output == expected_output
-            if hide_case_details:
-                show_input = ""
-                show_expected = ""
-                show_got = "" if passed else got_output
-            else:
+            hidden_case = question is not None and submit_mode and is_hidden_test_case(case)
+            if question is None or not hidden_case:
                 show_input = case_input
                 show_expected = expected_output
                 show_got = got_output
+            else:
+                show_input = ""
+                show_expected = ""
+                show_got = ""
             case_results.append(
                 JudgeCaseResult(
                     index=index + 1,
@@ -94,7 +104,7 @@ def judge_c_code(payload: JudgeRequest, db: Session = Depends(get_db)):
                     got=show_got,
                     status="Passed" if passed else "Failed",
                     passed=passed,
-                    hidden=hide_case_details,
+                    hidden=hidden_case,
                 )
             )
 

@@ -16,6 +16,7 @@ from ..schemas import (
     ResumeProgressOut,
 )
 from ..syllabus import module_order_case
+from ..test_case_policy import is_hidden_test_case
 
 router = APIRouter(prefix="/questions", tags=["questions"])
 
@@ -159,6 +160,10 @@ def get_efficient_solution(question_id: int, student_id: int, db: Session = Depe
 
 def _serialize_question(question: Question) -> dict:
     stored_tests = json.loads(question.test_cases_json or "[]")
+    public_cases: list[dict] = []
+    for case in stored_tests:
+        if isinstance(case, dict) and not is_hidden_test_case(case):
+            public_cases.append({"input": case.get("input", ""), "output": case.get("output", "")})
     return {
         "id": question.id,
         "title": question.title,
@@ -171,7 +176,7 @@ def _serialize_question(question: Question) -> dict:
         "sample_input": question.sample_input,
         "expected_output": question.expected_output,
         "examples": json.loads(question.examples_json or "[]"),
-        "test_cases": [],
+        "test_cases": public_cases,
         "test_case_count": len(stored_tests),
         "time_limit_minutes": question.time_limit_minutes,
         "algorithm_hint": question.algorithm_hint,

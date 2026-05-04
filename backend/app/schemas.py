@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
@@ -40,7 +40,7 @@ class QuestionBase(BaseModel):
     sample_input: Optional[str] = None
     expected_output: Optional[str] = None
     examples: list[dict[str, str]] = Field(default_factory=list)
-    test_cases: list[dict[str, str]] = Field(default_factory=list)
+    test_cases: list[dict[str, Any]] = Field(default_factory=list)
     time_limit_minutes: int = 15
     algorithm_hint: Optional[str] = None
     functions_hint: Optional[str] = None
@@ -119,7 +119,7 @@ class JudgeRequest(BaseModel):
     question_id: int | None = None
     custom_input: str | None = None
     mode: str = "run"
-    test_cases: list[dict[str, str]] = Field(default_factory=list)
+    test_cases: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class JudgeResponse(BaseModel):
