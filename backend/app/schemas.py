@@ -127,6 +127,8 @@ class JudgeResponse(BaseModel):
     compile_output: str
     custom_output: str | None = None
     results: list[JudgeCaseResult] = Field(default_factory=list)
+    passed_case_count: int = 0
+    total_case_count: int = 0
 
 
 class LeaderboardEntry(BaseModel):

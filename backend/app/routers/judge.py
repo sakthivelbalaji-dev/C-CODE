@@ -14,8 +14,6 @@ from ..schemas import JudgeCaseResult, JudgeRequest, JudgeResponse
 
 router = APIRouter(prefix="/judge", tags=["judge"])
 
-_HIDDEN_PLACEHOLDER = "(hidden)"
-
 COMPILE_TIMEOUT_SECONDS = 8
 RUN_TIMEOUT_SECONDS = 2
 WINLIBS_BIN = (
@@ -60,7 +58,14 @@ def judge_c_code(payload: JudgeRequest, db: Session = Depends(get_db)):
 
         compile_ok, compile_output = _compile_source(compiler, source_file, binary_file)
         if not compile_ok:
-            return JudgeResponse(compile_ok=False, compile_output=compile_output, custom_output=None, results=[])
+            return JudgeResponse(
+                compile_ok=False,
+                compile_output=compile_output,
+                custom_output=None,
+                results=[],
+                passed_case_count=0,
+                total_case_count=0,
+            )
 
         custom_output = None
         if payload.custom_input is not None:
@@ -73,23 +78,34 @@ def judge_c_code(payload: JudgeRequest, db: Session = Depends(get_db)):
             expected_output = str(case.get("output", "")).strip()
             got_output = _run_binary(binary_file, case_input).strip()
             passed = got_output == expected_output
+            if hide_case_details:
+                show_input = ""
+                show_expected = ""
+                show_got = "" if passed else got_output
+            else:
+                show_input = case_input
+                show_expected = expected_output
+                show_got = got_output
             case_results.append(
                 JudgeCaseResult(
                     index=index + 1,
-                    input=_HIDDEN_PLACEHOLDER if hide_case_details else case_input,
-                    expected=_HIDDEN_PLACEHOLDER if hide_case_details else expected_output,
-                    got=got_output,
+                    input=show_input,
+                    expected=show_expected,
+                    got=show_got,
                     status="Passed" if passed else "Failed",
                     passed=passed,
                     hidden=hide_case_details,
                 )
             )
 
+        passed_n = sum(1 for row in case_results if row.passed)
         return JudgeResponse(
             compile_ok=True,
             compile_output=compile_output,
             custom_output=custom_output.strip() if custom_output is not None else None,
             results=case_results,
+            passed_case_count=passed_n,
+            total_case_count=len(case_results),
         )
 
 
