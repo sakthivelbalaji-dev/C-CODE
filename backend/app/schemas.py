@@ -54,6 +54,7 @@ class QuestionCreate(QuestionBase):
 class QuestionOut(QuestionBase):
     id: int
     created_at: datetime
+    test_case_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -110,6 +111,7 @@ class JudgeCaseResult(BaseModel):
     got: str
     status: str
     passed: bool
+    hidden: bool = False
 
 
 class JudgeRequest(BaseModel):

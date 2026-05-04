@@ -14,6 +14,8 @@ from ..schemas import JudgeCaseResult, JudgeRequest, JudgeResponse
 
 router = APIRouter(prefix="/judge", tags=["judge"])
 
+_HIDDEN_PLACEHOLDER = "(hidden)"
+
 COMPILE_TIMEOUT_SECONDS = 8
 RUN_TIMEOUT_SECONDS = 2
 WINLIBS_BIN = (
@@ -65,6 +67,7 @@ def judge_c_code(payload: JudgeRequest, db: Session = Depends(get_db)):
             custom_output = _run_binary(binary_file, payload.custom_input)
 
         case_results: list[JudgeCaseResult] = []
+        hide_case_details = question is not None
         for index, case in enumerate(test_cases):
             case_input = str(case.get("input", ""))
             expected_output = str(case.get("output", "")).strip()
@@ -73,11 +76,12 @@ def judge_c_code(payload: JudgeRequest, db: Session = Depends(get_db)):
             case_results.append(
                 JudgeCaseResult(
                     index=index + 1,
-                    input=case_input,
-                    expected=expected_output,
+                    input=_HIDDEN_PLACEHOLDER if hide_case_details else case_input,
+                    expected=_HIDDEN_PLACEHOLDER if hide_case_details else expected_output,
                     got=got_output,
                     status="Passed" if passed else "Failed",
                     passed=passed,
+                    hidden=hide_case_details,
                 )
             )
 
