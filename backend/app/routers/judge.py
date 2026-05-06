@@ -113,15 +113,16 @@ def judge_c_code(payload: JudgeRequest, db: Session = Depends(get_db)):
                 passed = got_output == expected_output
                 if not passed and final_status == "Accepted":
                     final_status = "Wrong Answer"
-            hidden_case = question is not None and submit_mode and is_hidden_test_case(case)
-            if question is None or not hidden_case:
+            hidden_case = question is not None and is_hidden_test_case(case)
+            if question is None:
                 show_input = case_input
                 show_expected = expected_output
                 show_got = got_output
             else:
-                show_input = ""
-                show_expected = ""
-                show_got = ""
+                # Never expose actual test data for question-bound judge calls.
+                show_input = "-"
+                show_expected = "-"
+                show_got = "-"
             case_results.append(
                 JudgeCaseResult(
                     index=index + 1,
@@ -154,7 +155,7 @@ def judge_c_code(payload: JudgeRequest, db: Session = Depends(get_db)):
             compile_ok=True,
             compile_output=compile_output,
             custom_output=custom_output.strip() if custom_output is not None else None,
-            results=[],
+            results=[] if submit_mode else case_results,
             run_results=[] if submit_mode else run_results,
             passed_case_count=passed_n,
             total_case_count=total_n,

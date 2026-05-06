@@ -57,5 +57,90 @@
         resetIdleTimer();
       })();
     </script>
+    <script>
+      (function () {
+        var freezeTimer = false;
+        var frozenText = null;
+        var timerRegex = /time\s+left\s*:/i;
+
+        function findTimerNode() {
+          var all = document.querySelectorAll("*");
+          for (var i = 0; i < all.length; i++) {
+            var node = all[i];
+            if (!node || !node.childNodes || node.childNodes.length !== 1) {
+              continue;
+            }
+            var text = (node.textContent || "").trim();
+            if (timerRegex.test(text)) {
+              return node;
+            }
+          }
+          return null;
+        }
+
+        function applyFreeze() {
+          if (!freezeTimer) {
+            return;
+          }
+          var node = findTimerNode();
+          if (!node) {
+            return;
+          }
+          if (!frozenText) {
+            frozenText = (node.textContent || "").trim();
+          }
+          if (frozenText && node.textContent !== frozenText) {
+            node.textContent = frozenText;
+          }
+        }
+
+        function markAccepted(data) {
+          if (!data || typeof data !== "object") {
+            return;
+          }
+          if (data.status === "Accepted") {
+            freezeTimer = true;
+            applyFreeze();
+            return;
+          }
+          if (
+            typeof data.passed_case_count === "number" &&
+            typeof data.total_case_count === "number" &&
+            data.total_case_count > 0 &&
+            data.passed_case_count === data.total_case_count
+          ) {
+            freezeTimer = true;
+            applyFreeze();
+          }
+        }
+
+        var originalFetch = window.fetch;
+        window.fetch = function (input, init) {
+          var requestUrl = "";
+          if (typeof input === "string") {
+            requestUrl = input;
+          } else if (input && input.url) {
+            requestUrl = input.url;
+          }
+          return originalFetch.call(this, input, init).then(function (response) {
+            try {
+              if (!/\/api\/judge\/c(\?|$)/.test(requestUrl)) {
+                return response;
+              }
+              response
+                .clone()
+                .json()
+                .then(function (data) {
+                  markAccepted(data);
+                })
+                .catch(function () {});
+            } catch (e) {}
+            return response;
+          });
+        };
+
+        setInterval(applyFreeze, 300);
+      })();
+    </script>
   </body>
 </html>
