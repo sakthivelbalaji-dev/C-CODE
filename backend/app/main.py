@@ -8,14 +8,16 @@ import sys
 from pathlib import Path
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
+from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import models  # noqa: F401 — register ORM models before create_all
-from .database import Base, engine, ensure_schema_updates
+from .database import Base, engine, ensure_schema_updates, get_db
 from .routers import attempts, auth, judge, questions
+from .schemas import JudgeRequest, JudgeResponse
 
 logger = logging.getLogger(__name__)
 DEFAULT_TEST_CASES_JSON = json.dumps(
@@ -315,6 +317,18 @@ app.include_router(attempts.router, prefix="/api")
 app.include_router(judge.router, prefix="/api")
 # Backward-compatible judge path for older built frontend bundles.
 app.include_router(judge.router)
+
+
+@app.post("/{_prefix:path}/api/judge/c", response_model=JudgeResponse)
+def nested_api_judge_proxy(_prefix: str, payload: JudgeRequest, db: Session = Depends(get_db)):
+    """Fallback for buggy relative frontend calls from nested SPA routes."""
+    return judge.judge_c_code(payload, db)
+
+
+@app.post("/{_prefix:path}/judge/c", response_model=JudgeResponse)
+def nested_judge_proxy(_prefix: str, payload: JudgeRequest, db: Session = Depends(get_db)):
+    """Fallback for legacy nested /judge/c calls."""
+    return judge.judge_c_code(payload, db)
 
 if ASSETS_DIR.exists():
     app.mount("/assets", StaticFiles(directory=str(ASSETS_DIR)), name="assets")
