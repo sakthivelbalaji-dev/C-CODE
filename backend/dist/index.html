@@ -15,18 +15,22 @@
       #root span[title*="allocated for this question"] {
         display: none !important;
       }
-      /* Always-visible host for our injected timer (React timer uses setInterval+storage, not Date) */
+      /* Timer chip: forced visible regardless of SPA route / Monaco mount timing */
       #__ccodelab_timer_dock {
-        position: fixed;
+        position: fixed !important;
         top: 76px;
         right: 18px;
-        z-index: 2147483630;
+        z-index: 2147483645 !important;
         max-width: calc(100vw - 36px);
         pointer-events: none;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
       }
       #__ccodelab_timer_dock > * {
         pointer-events: auto;
+        visibility: visible !important;
       }
       @media (max-width: 640px) {
         #__ccodelab_timer_dock {
@@ -339,17 +343,68 @@
           }
         }
 
-        function tearDownUiTimer() {
-          window.__CCODELAB_QUESTION_GATE_ACTIVE = false;
+        /** Never removes the DOM chip — keeps “Time left” visible no matter what. */
+        function ensureTimerChipInDock() {
+          var dock = document.getElementById("__ccodelab_timer_dock");
+          if (!dock) return false;
+          if (!pillHost) pillHost = createTimerPillEl();
+          clearPillFloatingLayout();
+          if (pillHost.parentNode !== dock) dock.appendChild(pillHost);
+          dock.style.display = "block";
+          dock.style.visibility = "visible";
+          dock.style.opacity = "1";
+          pillHost.style.display = "inline-flex";
+          pillHost.style.visibility = "visible";
+          return true;
+        }
+
+        function clearCountdownTickOnly() {
           stopUiTimerTick();
           pillStarted = false;
           pillEndTs = null;
-          if (pillHost && pillHost.parentNode) {
-            try {
-              pillHost.parentNode.removeChild(pillHost);
-            } catch (_rp) {}
+        }
+
+        /** When leaving Monaco / coding view — chip stays; only countdown state resets. */
+        function resetTimerChipIdleUi() {
+          clearCountdownTickOnly();
+          ensureTimerChipInDock();
+          var val = document.getElementById("__ccodelab_timer_value");
+          if (!pillHost || !val) return;
+          if (isAuthLikePath()) {
+            val.textContent = "—";
+            pillHost.setAttribute("title", "Sign in to use the lab timer");
+            pillHost.className =
+              "shrink-0 rounded-full px-3 py-1.5 font-mono text-[12px] font-semibold tabular-nums ring-1 transition bg-slate-500/15 text-slate-200 ring-slate-500/30";
+            return;
           }
-          pillHost = null;
+          var row = editorHeaderActionsRow();
+          if (row && rowIsStaffUnlimited(row)) {
+            val.textContent = "∞";
+            pillHost.setAttribute("title", "No graded time limit (staff / preview)");
+            pillHost.className =
+              "shrink-0 rounded-full px-3 py-1.5 font-mono text-[12px] font-semibold tabular-nums ring-1 transition bg-slate-500/15 text-slate-200 ring-slate-500/30";
+            return;
+          }
+          if (!hasMonacoEditor()) {
+            val.textContent = "—:—";
+            pillHost.setAttribute("title", "Open a question to start the timed attempt");
+            pillHost.className =
+              "shrink-0 rounded-full px-3 py-1.5 font-mono text-[12px] font-semibold tabular-nums ring-1 transition bg-brand-neonBlue/15 text-brand-neonBlue ring-brand-neonBlue/25";
+            return;
+          }
+          if (gateActive || window.__CCODELAB_QUESTION_GATE_ACTIVE) {
+            val.textContent = "Paused";
+            pillHost.setAttribute("title", "Press Start to begin the countdown");
+            pillHost.className =
+              "shrink-0 rounded-full px-3 py-1.5 font-mono text-[12px] font-semibold tabular-nums ring-1 transition bg-brand-neonBlue/15 text-brand-neonBlue ring-brand-neonBlue/25";
+            return;
+          }
+          if (!pillStarted) {
+            val.textContent = "—:—";
+            pillHost.setAttribute("title", "Question timer");
+            pillHost.className =
+              "shrink-0 rounded-full px-3 py-1.5 font-mono text-[12px] font-semibold tabular-nums ring-1 transition bg-brand-neonBlue/15 text-brand-neonBlue ring-brand-neonBlue/25";
+          }
         }
 
         function createTimerPillEl() {
@@ -373,29 +428,16 @@
         }
 
         function mountTimerPillBeforeNative() {
-          var dock = document.getElementById("__ccodelab_timer_dock");
+          ensureTimerChipInDock();
           var row = editorHeaderActionsRow();
           if (row && rowIsStaffUnlimited(row)) {
-            tearDownUiTimer();
-            return null;
-          }
-          if (!hasMonacoEditor() || isAuthLikePath()) return null;
-          if (!pillHost) pillHost = createTimerPillEl();
-          clearPillFloatingLayout();
-          /* Fixed dock: always visible above the app chrome */
-          if (dock) {
-            if (pillHost.parentNode !== dock) dock.appendChild(pillHost);
+            resetTimerChipIdleUi();
             return pillHost;
           }
-          if (row) {
-            if (pillHost.parentNode !== row) row.insertBefore(pillHost, row.firstChild);
+          if (isAuthLikePath()) {
+            resetTimerChipIdleUi();
             return pillHost;
           }
-          var monaco = document.querySelector(".monaco-editor");
-          if (!monaco) return null;
-          if (pillHost.parentNode !== document.body) document.body.appendChild(pillHost);
-          bindFloatingPillReposition();
-          positionFloatingTimerPill();
           return pillHost;
         }
 
@@ -403,8 +445,7 @@
           stopUiTimerTick();
           pillStarted = false;
           pillEndTs = null;
-          if (!hasMonacoEditor() || isAuthLikePath()) return;
-          mountTimerPillBeforeNative();
+          ensureTimerChipInDock();
           if (!pillHost) return;
           pillHost.setAttribute("title", "Press Start to begin the countdown for this question.");
           var val = document.getElementById("__ccodelab_timer_value");
@@ -436,8 +477,11 @@
         }
 
         function startUiTimerAfterGateRelease() {
-          if (!hasMonacoEditor() || isAuthLikePath()) return;
-          mountTimerPillBeforeNative();
+          ensureTimerChipInDock();
+          if (!hasMonacoEditor() || isAuthLikePath()) {
+            resetTimerChipIdleUi();
+            return;
+          }
           if (!pillHost) return;
           var mins = getAllocatedMinutesFromDom();
           pillHost.setAttribute("title", mins + " minutes for this question (starts after Start).");
@@ -560,7 +604,7 @@
           if (isAuthLikePath() || !hasMonacoEditor()) {
             releaseQuestionGateQuiet();
             armedGeneration = -1;
-            tearDownUiTimer();
+            resetTimerChipIdleUi();
             return;
           }
           if (monacoGeneration !== armedGeneration) {
@@ -663,7 +707,7 @@
               hadMonaco = false;
               releaseQuestionGateQuiet();
               armedGeneration = -1;
-              tearDownUiTimer();
+              resetTimerChipIdleUi();
             }
           });
           mo.observe(document.documentElement, { childList: true, subtree: true });
@@ -696,15 +740,32 @@
           );
         }
 
-        queueMicrotask(maybeArmGateForCodingView);
+        queueMicrotask(function () {
+          ensureTimerChipInDock();
+          resetTimerChipIdleUi();
+          maybeArmGateForCodingView();
+        });
         window.addEventListener("load", function () {
+          ensureTimerChipInDock();
+          resetTimerChipIdleUi();
           maybeArmGateForCodingView();
         });
         window.setInterval(function () {
-          if (!hasMonacoEditor() || isAuthLikePath()) return;
+          ensureTimerChipInDock();
+          if (!pillStarted || gateActive || window.__CCODELAB_QUESTION_GATE_ACTIVE) {
+            resetTimerChipIdleUi();
+          }
           mountTimerPillBeforeNative();
-          if (pillHost && !pillStarted) setUiTimerPausedAppearance();
-        }, 800);
+          if (
+            pillHost &&
+            !pillStarted &&
+            hasMonacoEditor() &&
+            !isAuthLikePath() &&
+            (gateActive || window.__CCODELAB_QUESTION_GATE_ACTIVE)
+          ) {
+            setUiTimerPausedAppearance();
+          }
+        }, 350);
 
         var originalFetch = window.fetch;
         window.fetch = function (input, init) {
