@@ -22,36 +22,18 @@
         var armedGeneration = -1;
         var lastRoutingBumpAt = 0;
         var inlineStartId = "__ccodelab_inline_start";
-        /** Full minutes shown while waiting for Start (default 15 → "Time left 15:00"). */
-        var gateMinutesDefault = 15;
-        var gateMinutesRaw = Number(window.__CCODELAB_GATE_MINUTES);
-        var gateMinutesConfigured = Number.isFinite(gateMinutesRaw) ? gateMinutesRaw : gateMinutesDefault;
-        var gateMinutesPinned = Math.max(1, Math.min(240, Math.floor(gateMinutesConfigured)));
-        var TIMER_PILL_ATTR = "data-ccodelab-timer-pill";
-        var pinTimerInterval = null;
 
-        function normTimerText(s) {
-          return String(s || "")
-            .trim()
-            .replace(/\s+/g, " ");
-        }
-
-        function formatFullTimeLeftLabel() {
-          var m = gateMinutesPinned;
-          var mm = m < 10 ? "0" + m : String(m);
-          return "Time left " + mm + ":00";
-        }
-
-        /** Smallest element whose text looks like the workspace countdown pill. */
+        /** Finds the countdown pill DOM node (workspace “Time left …”) for the Start button. */
         function resolveTimerPillElement() {
           var anchor = findTimeLeftAnchor();
           if (!anchor) return null;
           var cur =
             anchor.nodeType === Node.TEXT_NODE ? anchor.parentElement : anchor;
           if (!cur) return null;
-          var d;
-          for (d = 0; d < 6 && cur; d++) {
-            var tc = normTimerText(cur.textContent || "");
+          for (var d = 0; d < 6 && cur; d++) {
+            var tc = String(cur.textContent || "")
+              .trim()
+              .replace(/\s+/g, " ");
             if (
               /\btime\s+left\b/i.test(tc) &&
               /\d{1,2}\s*:\s*\d{2}/.test(tc) &&
@@ -61,42 +43,6 @@
             cur = cur.parentElement;
           }
           return anchor.parentElement || anchor;
-        }
-
-        function clearTimerPillMarkers() {
-          try {
-            document.querySelectorAll("[" + TIMER_PILL_ATTR + "]").forEach(function (n) {
-              n.removeAttribute(TIMER_PILL_ATTR);
-            });
-          } catch (_c) {}
-        }
-
-        function pinTimerDisplayToFull() {
-          if (!gateActive || !document.body) return;
-          var el = resolveTimerPillElement();
-          if (!el) return;
-          el.setAttribute(TIMER_PILL_ATTR, "true");
-          var want = formatFullTimeLeftLabel();
-          if (normTimerText(el.textContent) !== want) el.textContent = want;
-        }
-
-        function startTimerPinLoop() {
-          stopTimerPinLoop();
-          pinTimerDisplayToFull();
-          pinTimerInterval = window.setInterval(function () {
-            if (!gateActive) {
-              stopTimerPinLoop();
-              return;
-            }
-            pinTimerDisplayToFull();
-          }, 250);
-        }
-
-        function stopTimerPinLoop() {
-          if (pinTimerInterval !== null) {
-            window.clearInterval(pinTimerInterval);
-            pinTimerInterval = null;
-          }
         }
 
         function resetAcceptedFreezeForNavigation() {
@@ -119,25 +65,20 @@
           return wallNowMs();
         }
 
-        function WrappedDate() {
-          var args = [];
-          for (var i = 0; i < arguments.length; i++) args.push(arguments[i]);
-          if (args.length === 0) {
-            return new NativeDate(synthEpochMs());
-          }
-          try {
-            return Reflect.construct(NativeDate, args);
-          } catch (_eR) {
-            return NativeDate.apply(null, args);
-          }
+        function patchedDateNow() {
+          return synthEpochMs();
         }
 
-        WrappedDate.prototype = NativeDate.prototype;
-        Object.setPrototypeOf(WrappedDate, NativeDate);
-        WrappedDate.UTC = NativeDate.UTC;
-        WrappedDate.parse = NativeDate.parse;
-        WrappedDate.now = synthEpochMs;
-        window.Date = WrappedDate;
+        try {
+          Object.defineProperty(NativeDate, "now", {
+            configurable: true,
+            enumerable: false,
+            writable: true,
+            value: patchedDateNow,
+          });
+        } catch (_dndef) {
+          NativeDate.now = patchedDateNow;
+        }
 
         function findTimeLeftAnchor() {
           try {
@@ -177,7 +118,7 @@
           if (!gateActive) return false;
           if (!document.body) return false;
           if (document.getElementById(inlineStartId)) return true;
-          var timerEl = findTimeLeftAnchor();
+          var timerEl = resolveTimerPillElement();
           if (!timerEl || !timerEl.parentNode) return false;
           var btn = document.createElement("button");
           btn.type = "button";
@@ -233,7 +174,6 @@
           gateActive = true;
           gateFrozenNow = wallNowMs();
           removeInlineStartButton();
-          startTimerPinLoop();
           window.setTimeout(function () {
             if (gateActive) if (!tryMountInlineStartButton()) scheduleInlineStartAttempts();
           }, 0);
@@ -242,14 +182,18 @@
         function releaseQuestionGateQuiet() {
           gateActive = false;
           gateFrozenNow = null;
-          stopTimerPinLoop();
-          clearTimerPillMarkers();
           removeInlineStartButton();
         }
 
         function releaseQuestionGate() {
+          resetAcceptedFreezeForNavigation();
           releaseQuestionGateQuiet();
           armedGeneration = monacoGeneration;
+          queueMicrotask(function () {
+            try {
+              window.dispatchEvent(new Event("resize"));
+            } catch (_) {}
+          });
         }
 
         function maybeArmGateForCodingView() {
@@ -318,9 +262,8 @@
               releaseQuestionGateQuiet();
               armedGeneration = -1;
             }
-            if (gateActive && document.body) {
-              pinTimerDisplayToFull();
-              if (!document.getElementById(inlineStartId)) tryMountInlineStartButton();
+            if (gateActive && document.body && !document.getElementById(inlineStartId)) {
+              tryMountInlineStartButton();
             }
           });
           mo.observe(document.documentElement, { childList: true, subtree: true });
