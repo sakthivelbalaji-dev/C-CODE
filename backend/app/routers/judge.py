@@ -155,7 +155,9 @@ def judge_c_code(payload: JudgeRequest, db: Session = Depends(get_db)):
             compile_ok=True,
             compile_output=compile_output,
             custom_output=custom_output.strip() if custom_output is not None else None,
-            results=[] if submit_mode else case_results,
+            # Keep case status rows for both run/submit so older frontend logic
+            # can compute correctness, while inputs/outputs stay masked.
+            results=case_results,
             run_results=[] if submit_mode else run_results,
             passed_case_count=passed_n,
             total_case_count=total_n,
