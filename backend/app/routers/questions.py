@@ -19,6 +19,11 @@ from ..schemas import (
 from ..syllabus import module_order_case
 
 router = APIRouter(prefix="/questions", tags=["questions"])
+DEFAULT_FALLBACK_CASES = [
+    {"input": "Mia\n19\n", "output": "Mia 19", "is_hidden": False},
+    {"input": "Alex\n21\n", "output": "Alex 21", "is_hidden": False},
+    {"input": "Zoe\n20\n", "output": "Zoe 20", "is_hidden": True},
+]
 
 
 def _next_unsolved_question(db: Session, student_id: int) -> tuple[Question | None, bool]:
@@ -185,6 +190,8 @@ def _serialize_question(question: Question) -> dict:
                     ex_out = str(row.get("output", "")).strip()
                     if ex_in or ex_out:
                         normalized_tests.append({"input": ex_in, "output": ex_out, "is_hidden": False})
+    if not normalized_tests:
+        normalized_tests = list(DEFAULT_FALLBACK_CASES)
 
     case_count = len(normalized_tests)
     masked_cases = [{"input": "", "output": ""} for _ in range(case_count)]

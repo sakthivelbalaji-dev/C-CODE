@@ -35,6 +35,11 @@ WINLIBS_BIN = (
     / "mingw64"
     / "bin"
 )
+DEFAULT_FALLBACK_CASES = [
+    {"input": "Mia\n19\n", "output": "Mia 19", "is_hidden": False},
+    {"input": "Alex\n21\n", "output": "Alex 21", "is_hidden": False},
+    {"input": "Zoe\n20\n", "output": "Zoe 20", "is_hidden": True},
+]
 
 
 @router.post("/c", response_model=JudgeResponse)
@@ -292,6 +297,9 @@ def _fallback_cases_from_question(question: Question) -> list[dict]:
                 ex_out = str(row.get("output", "")).strip()
                 if ex_in or ex_out:
                     cases.append({"input": ex_in, "output": ex_out, "is_hidden": False})
+
+    if not cases:
+        cases = list(DEFAULT_FALLBACK_CASES)
 
     return cases
 

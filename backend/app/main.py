@@ -1,6 +1,7 @@
 import logging
 import os
 import re
+import json
 import shutil
 import subprocess
 import sys
@@ -17,6 +18,13 @@ from .database import Base, engine, ensure_schema_updates
 from .routers import attempts, auth, judge, questions
 
 logger = logging.getLogger(__name__)
+DEFAULT_TEST_CASES_JSON = json.dumps(
+    [
+        {"input": "Mia\n19\n", "output": "Mia 19", "is_hidden": False},
+        {"input": "Alex\n21\n", "output": "Alex 21", "is_hidden": False},
+        {"input": "Zoe\n20\n", "output": "Zoe 20", "is_hidden": True},
+    ]
+)
 
 _BACKEND_DIR = Path(__file__).resolve().parents[1]
 _REPO_ROOT = _BACKEND_DIR.parent
@@ -136,14 +144,12 @@ def _ensure_test_cases_for_all_questions() -> None:
         source = db.query(Question).filter(Question.id == 5).first()
         if not source or not has_cases(source):
             source = next((q for q in rows if has_cases(q)), None)
-        if not source:
-            logger.warning("No source test cases found; skipping global test-case backfill.")
-            return
+        source_payload = source.test_cases_json if source else DEFAULT_TEST_CASES_JSON
 
         updated = 0
         for question in rows:
             if not has_cases(question):
-                question.test_cases_json = source.test_cases_json
+                question.test_cases_json = source_payload
                 updated += 1
 
         if updated:
