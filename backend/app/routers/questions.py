@@ -169,7 +169,24 @@ def get_efficient_solution(question_id: int, student_id: int, db: Session = Depe
 
 def _serialize_question(question: Question) -> dict:
     stored_tests = json.loads(question.test_cases_json or "[]")
-    case_count = len([c for c in stored_tests if isinstance(c, dict)])
+    normalized_tests = [c for c in stored_tests if isinstance(c, dict)]
+    if not normalized_tests:
+        sample_in = (question.sample_input or "").strip()
+        sample_out = (question.expected_output or "").strip()
+        if sample_in or sample_out:
+            normalized_tests.append({"input": sample_in, "output": sample_out, "is_hidden": False})
+        else:
+            examples = json.loads(question.examples_json or "[]")
+            if isinstance(examples, list):
+                for row in examples:
+                    if not isinstance(row, dict):
+                        continue
+                    ex_in = str(row.get("input", "")).strip()
+                    ex_out = str(row.get("output", "")).strip()
+                    if ex_in or ex_out:
+                        normalized_tests.append({"input": ex_in, "output": ex_out, "is_hidden": False})
+
+    case_count = len(normalized_tests)
     masked_cases = [{"input": "", "output": ""} for _ in range(case_count)]
     return {
         "id": question.id,

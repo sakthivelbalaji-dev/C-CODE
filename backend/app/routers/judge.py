@@ -60,6 +60,8 @@ def judge_c_code(payload: JudgeRequest, db: Session = Depends(get_db)):
         test_cases_raw = json.loads(question.test_cases_json or "[]")
         if not isinstance(test_cases_raw, list):
             test_cases_raw = []
+        if not test_cases_raw:
+            test_cases_raw = _fallback_cases_from_question(question)
 
     mode = (payload.mode or "run").strip().lower()
     submit_mode = mode == "submit"
@@ -268,6 +270,30 @@ def _build_process_env() -> dict[str, str]:
     if WINLIBS_BIN.exists():
         env["PATH"] = f"{WINLIBS_BIN}{os.pathsep}{env.get('PATH', '')}"
     return env
+
+
+def _fallback_cases_from_question(question: Question) -> list[dict]:
+    cases: list[dict] = []
+    sample_in = (question.sample_input or "").strip()
+    sample_out = (question.expected_output or "").strip()
+    if sample_in or sample_out:
+        cases.append({"input": sample_in, "output": sample_out, "is_hidden": False})
+
+    if not cases:
+        try:
+            examples = json.loads(question.examples_json or "[]")
+        except json.JSONDecodeError:
+            examples = []
+        if isinstance(examples, list):
+            for row in examples:
+                if not isinstance(row, dict):
+                    continue
+                ex_in = str(row.get("input", "")).strip()
+                ex_out = str(row.get("output", "")).strip()
+                if ex_in or ex_out:
+                    cases.append({"input": ex_in, "output": ex_out, "is_hidden": False})
+
+    return cases
 
 
 def _build_preexec_memory_limiter():
