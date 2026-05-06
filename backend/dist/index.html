@@ -60,59 +60,15 @@
     <script>
       (function () {
         var freezeTimer = false;
-        var frozenText = null;
-        var timerRegex = /time\s*left\s*:?\s*\d{1,2}:\d{2}/i;
-        var fallbackRegex = /time\s+left\s*:/i;
+        var frozenNow = null;
+        var originalDateNow = Date.now.bind(Date);
 
-        function findTimerNodes() {
-          var all = document.querySelectorAll("*");
-          var matches = [];
-          for (var i = 0; i < all.length; i++) {
-            var node = all[i];
-            if (!node) {
-              continue;
-            }
-            var text = (node.textContent || "").trim();
-            if (!text) {
-              continue;
-            }
-            if (timerRegex.test(text) || fallbackRegex.test(text)) {
-              matches.push(node);
-            }
+        Date.now = function () {
+          if (freezeTimer && typeof frozenNow === "number") {
+            return frozenNow;
           }
-          return matches;
-        }
-
-        function pickFrozenText(nodes) {
-          for (var i = 0; i < nodes.length; i++) {
-            var text = (nodes[i].textContent || "").trim();
-            if (timerRegex.test(text)) {
-              return text;
-            }
-          }
-          return nodes.length > 0 ? (nodes[0].textContent || "").trim() : null;
-        }
-
-        function applyFreeze() {
-          if (!freezeTimer) {
-            return;
-          }
-          var nodes = findTimerNodes();
-          if (!nodes.length) {
-            return;
-          }
-          if (!frozenText) {
-            frozenText = pickFrozenText(nodes);
-          }
-          if (!frozenText) {
-            return;
-          }
-          for (var i = 0; i < nodes.length; i++) {
-            if ((nodes[i].textContent || "").trim() !== frozenText) {
-              nodes[i].textContent = frozenText;
-            }
-          }
-        }
+          return originalDateNow();
+        };
 
         function markAccepted(data) {
           if (!data || typeof data !== "object") {
@@ -120,7 +76,7 @@
           }
           if (data.status === "Accepted") {
             freezeTimer = true;
-            applyFreeze();
+            frozenNow = originalDateNow();
             return;
           }
           if (
@@ -130,7 +86,7 @@
             data.passed_case_count === data.total_case_count
           ) {
             freezeTimer = true;
-            applyFreeze();
+            frozenNow = originalDateNow();
           }
         }
 
@@ -179,8 +135,6 @@
             return response;
           });
         };
-
-        setInterval(applyFreeze, 100);
       })();
     </script>
   </body>
