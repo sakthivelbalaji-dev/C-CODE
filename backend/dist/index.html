@@ -61,36 +61,56 @@
       (function () {
         var freezeTimer = false;
         var frozenText = null;
-        var timerRegex = /time\s+left\s*:/i;
+        var timerRegex = /time\s*left\s*:?\s*\d{1,2}:\d{2}/i;
+        var fallbackRegex = /time\s+left\s*:/i;
 
-        function findTimerNode() {
+        function findTimerNodes() {
           var all = document.querySelectorAll("*");
+          var matches = [];
           for (var i = 0; i < all.length; i++) {
             var node = all[i];
-            if (!node || !node.childNodes || node.childNodes.length !== 1) {
+            if (!node) {
               continue;
             }
             var text = (node.textContent || "").trim();
-            if (timerRegex.test(text)) {
-              return node;
+            if (!text) {
+              continue;
+            }
+            if (timerRegex.test(text) || fallbackRegex.test(text)) {
+              matches.push(node);
             }
           }
-          return null;
+          return matches;
+        }
+
+        function pickFrozenText(nodes) {
+          for (var i = 0; i < nodes.length; i++) {
+            var text = (nodes[i].textContent || "").trim();
+            if (timerRegex.test(text)) {
+              return text;
+            }
+          }
+          return nodes.length > 0 ? (nodes[0].textContent || "").trim() : null;
         }
 
         function applyFreeze() {
           if (!freezeTimer) {
             return;
           }
-          var node = findTimerNode();
-          if (!node) {
+          var nodes = findTimerNodes();
+          if (!nodes.length) {
             return;
           }
           if (!frozenText) {
-            frozenText = (node.textContent || "").trim();
+            frozenText = pickFrozenText(nodes);
           }
-          if (frozenText && node.textContent !== frozenText) {
-            node.textContent = frozenText;
+          if (!frozenText) {
+            return;
+          }
+          for (var i = 0; i < nodes.length; i++) {
+            if ((nodes[i].textContent || "").trim() !== frozenText) {
+              nodes[i].textContent = frozenText;
+            }
           }
         }
 
@@ -139,7 +159,7 @@
           });
         };
 
-        setInterval(applyFreeze, 300);
+        setInterval(applyFreeze, 100);
       })();
     </script>
   </body>
