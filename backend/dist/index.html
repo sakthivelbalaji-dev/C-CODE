@@ -22,6 +22,82 @@
         var armedGeneration = -1;
         var lastRoutingBumpAt = 0;
         var inlineStartId = "__ccodelab_inline_start";
+        /** Full minutes shown while waiting for Start (default 15 → "Time left 15:00"). */
+        var gateMinutesDefault = 15;
+        var gateMinutesRaw = Number(window.__CCODELAB_GATE_MINUTES);
+        var gateMinutesConfigured = Number.isFinite(gateMinutesRaw) ? gateMinutesRaw : gateMinutesDefault;
+        var gateMinutesPinned = Math.max(1, Math.min(240, Math.floor(gateMinutesConfigured)));
+        var TIMER_PILL_ATTR = "data-ccodelab-timer-pill";
+        var pinTimerInterval = null;
+
+        function normTimerText(s) {
+          return String(s || "")
+            .trim()
+            .replace(/\s+/g, " ");
+        }
+
+        function formatFullTimeLeftLabel() {
+          var m = gateMinutesPinned;
+          var mm = m < 10 ? "0" + m : String(m);
+          return "Time left " + mm + ":00";
+        }
+
+        /** Smallest element whose text looks like the workspace countdown pill. */
+        function resolveTimerPillElement() {
+          var anchor = findTimeLeftAnchor();
+          if (!anchor) return null;
+          var cur =
+            anchor.nodeType === Node.TEXT_NODE ? anchor.parentElement : anchor;
+          if (!cur) return null;
+          var d;
+          for (d = 0; d < 6 && cur; d++) {
+            var tc = normTimerText(cur.textContent || "");
+            if (
+              /\btime\s+left\b/i.test(tc) &&
+              /\d{1,2}\s*:\s*\d{2}/.test(tc) &&
+              tc.length <= 64
+            )
+              return cur;
+            cur = cur.parentElement;
+          }
+          return anchor.parentElement || anchor;
+        }
+
+        function clearTimerPillMarkers() {
+          try {
+            document.querySelectorAll("[" + TIMER_PILL_ATTR + "]").forEach(function (n) {
+              n.removeAttribute(TIMER_PILL_ATTR);
+            });
+          } catch (_c) {}
+        }
+
+        function pinTimerDisplayToFull() {
+          if (!gateActive || !document.body) return;
+          var el = resolveTimerPillElement();
+          if (!el) return;
+          el.setAttribute(TIMER_PILL_ATTR, "true");
+          var want = formatFullTimeLeftLabel();
+          if (normTimerText(el.textContent) !== want) el.textContent = want;
+        }
+
+        function startTimerPinLoop() {
+          stopTimerPinLoop();
+          pinTimerDisplayToFull();
+          pinTimerInterval = window.setInterval(function () {
+            if (!gateActive) {
+              stopTimerPinLoop();
+              return;
+            }
+            pinTimerDisplayToFull();
+          }, 250);
+        }
+
+        function stopTimerPinLoop() {
+          if (pinTimerInterval !== null) {
+            window.clearInterval(pinTimerInterval);
+            pinTimerInterval = null;
+          }
+        }
 
         function resetAcceptedFreezeForNavigation() {
           freezeTimer = false;
@@ -157,6 +233,7 @@
           gateActive = true;
           gateFrozenNow = wallNowMs();
           removeInlineStartButton();
+          startTimerPinLoop();
           window.setTimeout(function () {
             if (gateActive) if (!tryMountInlineStartButton()) scheduleInlineStartAttempts();
           }, 0);
@@ -165,6 +242,8 @@
         function releaseQuestionGateQuiet() {
           gateActive = false;
           gateFrozenNow = null;
+          stopTimerPinLoop();
+          clearTimerPillMarkers();
           removeInlineStartButton();
         }
 
@@ -239,8 +318,9 @@
               releaseQuestionGateQuiet();
               armedGeneration = -1;
             }
-            if (gateActive && document.body && !document.getElementById(inlineStartId)) {
-              tryMountInlineStartButton();
+            if (gateActive && document.body) {
+              pinTimerDisplayToFull();
+              if (!document.getElementById(inlineStartId)) tryMountInlineStartButton();
             }
           });
           mo.observe(document.documentElement, { childList: true, subtree: true });
