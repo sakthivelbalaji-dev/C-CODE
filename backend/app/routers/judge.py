@@ -135,9 +135,8 @@ def judge_c_code(payload: JudgeRequest, db: Session = Depends(get_db)):
             if not submit_mode:
                 run_results.append(
                     JudgeRunResult(
-                        input=case_input,
-                        expected=expected_output,
-                        actual=got_output,
+                        index=index + 1,
+                        status="Passed" if passed else "Failed",
                         passed=passed,
                     )
                 )
@@ -154,7 +153,7 @@ def judge_c_code(payload: JudgeRequest, db: Session = Depends(get_db)):
             compile_ok=True,
             compile_output=compile_output,
             custom_output=custom_output.strip() if custom_output is not None else None,
-            results=[] if submit_mode else case_results,
+            results=[],
             run_results=[] if submit_mode else run_results,
             passed_case_count=passed_n,
             total_case_count=total_n,

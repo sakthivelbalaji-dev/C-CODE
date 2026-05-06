@@ -139,7 +139,9 @@ def get_question(question_id: int, db: Session = Depends(get_db)):
         "title": serialized["title"],
         "description": serialized["description"],
         "constraints": serialized["constraints"],
-        "test_cases": serialized["test_cases"],
+        "sample_input": serialized["sample_input"],
+        "expected_output": serialized["expected_output"],
+        "examples": serialized["examples"],
     }
 
 

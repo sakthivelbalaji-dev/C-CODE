@@ -64,7 +64,9 @@ class QuestionPublicOut(BaseModel):
     title: str
     description: str
     constraints: Optional[str] = None
-    test_cases: list[dict[str, Any]] = Field(default_factory=list)
+    sample_input: Optional[str] = None
+    expected_output: Optional[str] = None
+    examples: list[dict[str, str]] = Field(default_factory=list)
 
 
 class CatalogUpdatesOut(BaseModel):
@@ -129,9 +131,8 @@ class JudgeCaseResult(BaseModel):
 
 
 class JudgeRunResult(BaseModel):
-    input: str
-    expected: str
-    actual: str
+    index: int
+    status: str
     passed: bool
 
 
