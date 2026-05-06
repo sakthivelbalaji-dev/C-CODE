@@ -132,6 +132,12 @@
         var lastRoutingBumpAt = 0;
         var overlayEl = null;
 
+        /** Injected “Time left” pill (native one stays hidden). Starts only after Start. */
+        var pillHost = null;
+        var pillIntervalId = null;
+        var pillEndTs = null;
+        var pillStarted = false;
+
         function wallClockMs() {
           if (freezeTimer && typeof frozenNow === "number") return frozenNow;
           if (gateActive && typeof gateFrozenNow === "number") return gateFrozenNow;
@@ -159,6 +165,135 @@
 
         function hasMonacoEditor() {
           return !!document.querySelector(".monaco-editor");
+        }
+
+        function editorHeaderActionsRow() {
+          var h2list = document.querySelectorAll("#root h2");
+          for (var i = 0; i < h2list.length; i++) {
+            if ((h2list[i].textContent || "").trim() !== "Code editor") continue;
+            var el = h2list[i];
+            for (var depth = 0; depth < 14 && el; depth++) {
+              el = el.parentElement;
+              if (!el) break;
+              var cn = el.className;
+              if (typeof cn === "string" && cn.indexOf("justify-end") !== -1 && cn.indexOf("gap-2") !== -1) {
+                return el;
+              }
+            }
+          }
+          return null;
+        }
+
+        function rowIsStaffUnlimited(row) {
+          return row && typeof row.textContent === "string" && row.textContent.indexOf("No graded time limit") !== -1;
+        }
+
+        function getAllocatedMinutesFromDom() {
+          var src = document.querySelector('#root span[title*="allocated for this question"]');
+          if (!src || !src.title) return 15;
+          var m = /(\d+)\s*minutes/i.exec(src.title);
+          return m ? Math.max(1, parseInt(m[1], 10)) : 15;
+        }
+
+        function stopUiTimerTick() {
+          if (pillIntervalId != null) {
+            window.clearInterval(pillIntervalId);
+            pillIntervalId = null;
+          }
+        }
+
+        function tearDownUiTimer() {
+          stopUiTimerTick();
+          pillStarted = false;
+          pillEndTs = null;
+          if (pillHost && pillHost.parentNode) {
+            try {
+              pillHost.parentNode.removeChild(pillHost);
+            } catch (_rp) {}
+          }
+          pillHost = null;
+        }
+
+        function createTimerPillEl() {
+          var wrap = document.createElement("span");
+          wrap.id = "__ccodelab_timer_pill";
+          wrap.className =
+            "shrink-0 rounded-full px-3 py-1.5 font-mono text-[12px] font-semibold tabular-nums ring-1 transition bg-brand-neonBlue/15 text-brand-neonBlue ring-brand-neonBlue/25";
+          wrap.style.display = "inline-flex";
+          wrap.style.alignItems = "center";
+          var label = document.createElement("span");
+          label.style.opacity = "0.85";
+          label.style.fontWeight = "600";
+          label.textContent = "Time left ";
+          var val = document.createElement("span");
+          val.className = "text-[13px]";
+          val.id = "__ccodelab_timer_value";
+          val.textContent = "Paused";
+          wrap.appendChild(label);
+          wrap.appendChild(val);
+          return wrap;
+        }
+
+        function mountTimerPillBeforeNative() {
+          var row = editorHeaderActionsRow();
+          if (!row || rowIsStaffUnlimited(row)) {
+            tearDownUiTimer();
+            return null;
+          }
+          if (!pillHost) pillHost = createTimerPillEl();
+          if (pillHost.parentNode !== row) {
+            row.insertBefore(pillHost, row.firstChild);
+          }
+          return pillHost;
+        }
+
+        function setUiTimerPausedAppearance() {
+          stopUiTimerTick();
+          pillStarted = false;
+          pillEndTs = null;
+          if (!hasMonacoEditor() || isAuthLikePath()) return;
+          mountTimerPillBeforeNative();
+          if (!pillHost) return;
+          pillHost.setAttribute("title", "Press Start to begin the countdown for this question.");
+          var val = document.getElementById("__ccodelab_timer_value");
+          if (val) val.textContent = "Paused";
+          pillHost.className =
+            "shrink-0 rounded-full px-3 py-1.5 font-mono text-[12px] font-semibold tabular-nums ring-1 transition bg-brand-neonBlue/15 text-brand-neonBlue ring-brand-neonBlue/25";
+        }
+
+        function tickUiTimerDisplay() {
+          var val = document.getElementById("__ccodelab_timer_value");
+          if (!val || !pillStarted || pillEndTs == null || !pillHost) return;
+          var now = wallClockMs();
+          var rem = Math.max(0, pillEndTs - now);
+          var totalSec = Math.floor(rem / 1000);
+          var mm = Math.floor(totalSec / 60);
+          var ss = totalSec % 60;
+          val.textContent = (mm < 10 ? "0" : "") + mm + ":" + (ss < 10 ? "0" : "") + ss;
+          if (totalSec <= 0) {
+            pillHost.className =
+              "shrink-0 rounded-full px-3 py-1.5 font-mono text-[12px] font-semibold tabular-nums ring-1 transition bg-rose-500/15 text-rose-200 ring-rose-400/35";
+          } else if (totalSec <= 120) {
+            pillHost.className =
+              "shrink-0 rounded-full px-3 py-1.5 font-mono text-[12px] font-semibold tabular-nums ring-1 transition bg-amber-500/12 text-amber-200 ring-amber-400/35";
+          } else {
+            pillHost.className =
+              "shrink-0 rounded-full px-3 py-1.5 font-mono text-[12px] font-semibold tabular-nums ring-1 transition bg-brand-neonBlue/15 text-brand-neonBlue ring-brand-neonBlue/25";
+          }
+          if (rem <= 0) stopUiTimerTick();
+        }
+
+        function startUiTimerAfterGateRelease() {
+          if (!hasMonacoEditor() || isAuthLikePath()) return;
+          mountTimerPillBeforeNative();
+          if (!pillHost) return;
+          var mins = getAllocatedMinutesFromDom();
+          pillHost.setAttribute("title", mins + " minutes for this question (starts after Start).");
+          pillEndTs = originalDateNow() + mins * 60 * 1000;
+          pillStarted = true;
+          stopUiTimerTick();
+          pillIntervalId = window.setInterval(tickUiTimerDisplay, 250);
+          tickUiTimerDisplay();
         }
 
         function ensureOverlay() {
@@ -248,6 +383,7 @@
           gateFrozenNow = originalDateNow();
           gateFrozenPerf = originalPerfNow();
           showStartOverlay();
+          window.setTimeout(setUiTimerPausedAppearance, 0);
         }
 
         function releaseQuestionGateQuiet() {
@@ -260,12 +396,14 @@
         function releaseQuestionGate() {
           releaseQuestionGateQuiet();
           armedGeneration = monacoGeneration;
+          window.setTimeout(startUiTimerAfterGateRelease, 100);
         }
 
         function maybeArmGateForCodingView() {
           if (isAuthLikePath() || !hasMonacoEditor()) {
             releaseQuestionGateQuiet();
             armedGeneration = -1;
+            tearDownUiTimer();
             return;
           }
           if (monacoGeneration !== armedGeneration) {
@@ -368,6 +506,7 @@
               hadMonaco = false;
               releaseQuestionGateQuiet();
               armedGeneration = -1;
+              tearDownUiTimer();
             }
           });
           mo.observe(document.documentElement, { childList: true, subtree: true });
@@ -404,6 +543,11 @@
         window.addEventListener("load", function () {
           maybeArmGateForCodingView();
         });
+        window.setInterval(function () {
+          if (!hasMonacoEditor() || isAuthLikePath()) return;
+          mountTimerPillBeforeNative();
+          if (pillHost && !pillStarted) setUiTimerPausedAppearance();
+        }, 800);
 
         var originalFetch = window.fetch;
         window.fetch = function (input, init) {
