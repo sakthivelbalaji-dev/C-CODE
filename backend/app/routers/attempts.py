@@ -64,19 +64,26 @@ def create_attempt(payload: AttemptCreate, db: Session = Depends(get_db)):
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
 
+    verdict_norm = (payload.verdict or "").strip().lower()
+    derived_is_correct = bool(
+        verdict_norm == "accepted"
+        or (payload.total_cases > 0 and payload.passed_cases >= payload.total_cases)
+        or payload.is_correct
+    )
+
     attempt = Attempt(
         student_id=payload.student_id,
         question_id=payload.question_id,
         submitted_code=(
-            payload.submitted_code if payload.is_correct else INCORRECT_CODE_PLACEHOLDER
+            payload.submitted_code if derived_is_correct else INCORRECT_CODE_PLACEHOLDER
         ),
         score=payload.score,
         passed_cases=payload.passed_cases,
         failed_cases=payload.failed_cases,
-        is_correct=payload.is_correct,
+        is_correct=derived_is_correct,
         feedback=_truncate_feedback(payload.feedback),
         is_best_attempt=False,
-        verdict=payload.verdict,
+        verdict=payload.verdict or ("Accepted" if derived_is_correct else "Wrong Answer"),
         runtime_ms=max(0, payload.runtime_ms),
         total_cases=max(0, payload.total_cases),
     )
