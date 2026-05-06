@@ -3,20 +3,27 @@ import os
 import shutil
 import subprocess
 import tempfile
+import time
 from pathlib import Path
+
+try:
+    import resource
+except ImportError:  # pragma: no cover - Windows
+    resource = None
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import Question
-from ..schemas import JudgeCaseResult, JudgeRequest, JudgeResponse
+from ..schemas import JudgeCaseResult, JudgeRequest, JudgeResponse, JudgeRunResult
 from ..test_case_policy import is_hidden_test_case
 
 router = APIRouter(prefix="/judge", tags=["judge"])
 
 COMPILE_TIMEOUT_SECONDS = 8
 RUN_TIMEOUT_SECONDS = 2
+MEMORY_LIMIT_MB = 256
 WINLIBS_BIN = (
     Path.home()
     / "AppData"
@@ -73,8 +80,11 @@ def judge_c_code(payload: JudgeRequest, db: Session = Depends(get_db)):
                 compile_output=compile_output,
                 custom_output=None,
                 results=[],
+                run_results=[],
                 passed_case_count=0,
                 total_case_count=0,
+                status="Compilation Error",
+                runtime_ms=0,
             )
 
         custom_output = None
@@ -82,11 +92,26 @@ def judge_c_code(payload: JudgeRequest, db: Session = Depends(get_db)):
             custom_output = _run_binary(binary_file, payload.custom_input)
 
         case_results: list[JudgeCaseResult] = []
+        run_results: list[JudgeRunResult] = []
+        runtime_ms = 0
+        final_status = "Accepted"
         for index, case in enumerate(eval_cases):
             case_input = str(case.get("input", ""))
-            expected_output = str(case.get("output", "")).strip()
-            got_output = _run_binary(binary_file, case_input).strip()
-            passed = got_output == expected_output
+            expected_output = _normalize_output(str(case.get("output", "")))
+            run_result = _run_binary(binary_file, case_input)
+            runtime_ms += run_result["runtime_ms"]
+            got_output = _normalize_output(run_result["output"])
+            if run_result["status"] == "Time Limit Exceeded":
+                passed = False
+                final_status = "Time Limit Exceeded"
+            elif run_result["status"] == "Runtime Error":
+                passed = False
+                if final_status == "Accepted":
+                    final_status = "Runtime Error"
+            else:
+                passed = got_output == expected_output
+                if not passed and final_status == "Accepted":
+                    final_status = "Wrong Answer"
             hidden_case = question is not None and submit_mode and is_hidden_test_case(case)
             if question is None or not hidden_case:
                 show_input = case_input
@@ -107,15 +132,34 @@ def judge_c_code(payload: JudgeRequest, db: Session = Depends(get_db)):
                     hidden=hidden_case,
                 )
             )
+            if not submit_mode:
+                run_results.append(
+                    JudgeRunResult(
+                        input=case_input,
+                        expected=expected_output,
+                        actual=got_output,
+                        passed=passed,
+                    )
+                )
+            if submit_mode and final_status in ("Time Limit Exceeded", "Runtime Error"):
+                break
 
         passed_n = sum(1 for row in case_results if row.passed)
+        total_n = len(case_results)
+        if total_n == 0 and compile_ok:
+            final_status = "Accepted"
+        elif passed_n == total_n and final_status == "Accepted":
+            final_status = "Accepted"
         return JudgeResponse(
             compile_ok=True,
             compile_output=compile_output,
             custom_output=custom_output.strip() if custom_output is not None else None,
-            results=case_results,
+            results=[] if submit_mode else case_results,
+            run_results=[] if submit_mode else run_results,
             passed_case_count=passed_n,
-            total_case_count=len(case_results),
+            total_case_count=total_n,
+            status=final_status,
+            runtime_ms=runtime_ms,
         )
 
 
@@ -177,9 +221,18 @@ def _compile_source(compiler: str, source_file: Path, binary_file: Path) -> tupl
     return True, compile_output or "Compilation successful."
 
 
-def _run_binary(binary_file: Path, program_input: str) -> str:
+def _normalize_output(value: str) -> str:
+    return value.replace("\r\n", "\n").strip()
+
+
+def _run_binary(binary_file: Path, program_input: str) -> dict[str, str | int]:
     process_env = _build_process_env()
+    started = time.perf_counter()
     try:
+        preexec_fn = None
+        if os.name != "nt":
+            # Best-effort memory limit for POSIX workers.
+            preexec_fn = _build_preexec_memory_limiter()
         process = subprocess.run(
             [str(binary_file)],
             input=program_input,
@@ -189,17 +242,22 @@ def _run_binary(binary_file: Path, program_input: str) -> str:
             check=False,
             env=process_env,
             cwd=str(binary_file.parent),
+            preexec_fn=preexec_fn,
         )
     except subprocess.TimeoutExpired:
-        return "Execution timed out."
+        elapsed = int((time.perf_counter() - started) * 1000)
+        return {"output": "", "status": "Time Limit Exceeded", "runtime_ms": elapsed}
     except OSError as error:
-        return f"Execution error: {error}"
+        elapsed = int((time.perf_counter() - started) * 1000)
+        return {"output": f"Execution error: {error}", "status": "Runtime Error", "runtime_ms": elapsed}
 
-    output = process.stdout.strip()
-    error_text = process.stderr.strip()
-    if process.returncode != 0 and error_text:
-        return error_text
-    return output
+    elapsed = int((time.perf_counter() - started) * 1000)
+    output = process.stdout or ""
+    error_text = process.stderr or ""
+    if process.returncode != 0:
+        runtime_msg = error_text.strip() or output.strip() or "Runtime error"
+        return {"output": runtime_msg, "status": "Runtime Error", "runtime_ms": elapsed}
+    return {"output": output, "status": "OK", "runtime_ms": elapsed}
 
 
 def _build_process_env() -> dict[str, str]:
@@ -207,3 +265,14 @@ def _build_process_env() -> dict[str, str]:
     if WINLIBS_BIN.exists():
         env["PATH"] = f"{WINLIBS_BIN}{os.pathsep}{env.get('PATH', '')}"
     return env
+
+
+def _build_preexec_memory_limiter():
+    if resource is None:
+        return None
+    memory_limit_bytes = MEMORY_LIMIT_MB * 1024 * 1024
+
+    def _set_limits():
+        resource.setrlimit(resource.RLIMIT_AS, (memory_limit_bytes, memory_limit_bytes))
+
+    return _set_limits

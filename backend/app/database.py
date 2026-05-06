@@ -84,6 +84,27 @@ def ensure_schema_updates():
                         "BOOLEAN NOT NULL DEFAULT false"
                     )
                 )
+            if "verdict" not in attempt_cols:
+                connection.execute(
+                    text(
+                        "ALTER TABLE attempts ADD COLUMN IF NOT EXISTS verdict "
+                        "VARCHAR(40) NOT NULL DEFAULT 'Wrong Answer'"
+                    )
+                )
+            if "runtime_ms" not in attempt_cols:
+                connection.execute(
+                    text(
+                        "ALTER TABLE attempts ADD COLUMN IF NOT EXISTS runtime_ms "
+                        "INTEGER NOT NULL DEFAULT 0"
+                    )
+                )
+            if "total_cases" not in attempt_cols:
+                connection.execute(
+                    text(
+                        "ALTER TABLE attempts ADD COLUMN IF NOT EXISTS total_cases "
+                        "INTEGER NOT NULL DEFAULT 0"
+                    )
+                )
 
 
 def get_db():

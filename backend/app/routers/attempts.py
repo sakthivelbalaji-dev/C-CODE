@@ -76,6 +76,9 @@ def create_attempt(payload: AttemptCreate, db: Session = Depends(get_db)):
         is_correct=payload.is_correct,
         feedback=_truncate_feedback(payload.feedback),
         is_best_attempt=False,
+        verdict=payload.verdict,
+        runtime_ms=max(0, payload.runtime_ms),
+        total_cases=max(0, payload.total_cases),
     )
     db.add(attempt)
     db.flush()
@@ -132,6 +135,9 @@ def create_attempt(payload: AttemptCreate, db: Session = Depends(get_db)):
         is_correct=attempt.is_correct,
         feedback=attempt.feedback,
         is_best_attempt=attempt.is_best_attempt,
+        verdict=attempt.verdict,
+        runtime_ms=attempt.runtime_ms,
+        total_cases=attempt.total_cases,
         created_at=attempt.created_at,
         should_move_next=should_move_next,
         next_question_id=next_question_id,
@@ -172,6 +178,9 @@ def list_attempts(student_id: int | None = None, db: Session = Depends(get_db)):
                 is_correct=attempt.is_correct,
                 feedback=attempt.feedback,
                 is_best_attempt=attempt.is_best_attempt,
+                verdict=attempt.verdict,
+                runtime_ms=attempt.runtime_ms,
+                total_cases=attempt.total_cases,
                 created_at=attempt.created_at,
                 question_title=question_map.get(attempt.question_id),
                 student_name=student_info.get("name"),

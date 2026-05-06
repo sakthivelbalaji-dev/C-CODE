@@ -13,6 +13,7 @@ from ..schemas import (
     EfficientSolutionOut,
     QuestionCreate,
     QuestionOut,
+    QuestionPublicOut,
     ResumeProgressOut,
 )
 from ..syllabus import module_order_case
@@ -127,12 +128,19 @@ def get_following_question_in_syllabus(question_id: int, db: Session = Depends(g
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Question not found.")
 
 
-@router.get("/{question_id}", response_model=QuestionOut)
+@router.get("/{question_id}", response_model=QuestionPublicOut)
 def get_question(question_id: int, db: Session = Depends(get_db)):
     question = db.query(Question).filter(Question.id == question_id).first()
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
-    return _serialize_question(question)
+    serialized = _serialize_question(question)
+    return {
+        "id": serialized["id"],
+        "title": serialized["title"],
+        "description": serialized["description"],
+        "constraints": serialized["constraints"],
+        "test_cases": serialized["test_cases"],
+    }
 
 
 @router.get("/{question_id}/efficient-solution", response_model=EfficientSolutionOut)
@@ -177,7 +185,7 @@ def _serialize_question(question: Question) -> dict:
         "expected_output": question.expected_output,
         "examples": json.loads(question.examples_json or "[]"),
         "test_cases": public_cases,
-        "test_case_count": len(stored_tests),
+        "test_case_count": len(public_cases),
         "time_limit_minutes": question.time_limit_minutes,
         "algorithm_hint": question.algorithm_hint,
         "functions_hint": question.functions_hint,

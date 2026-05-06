@@ -55,6 +55,9 @@ class Attempt(Base):
     is_correct = Column(Boolean, default=False)
     feedback = Column(Text, nullable=True)
     is_best_attempt = Column(Boolean, nullable=False, default=False)
+    verdict = Column(String(40), nullable=False, default="Wrong Answer")
+    runtime_ms = Column(Integer, nullable=False, default=0)
+    total_cases = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     student = relationship("Student", back_populates="attempts")

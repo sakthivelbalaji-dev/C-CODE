@@ -59,6 +59,14 @@ class QuestionOut(QuestionBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class QuestionPublicOut(BaseModel):
+    id: int
+    title: str
+    description: str
+    constraints: Optional[str] = None
+    test_cases: list[dict[str, Any]] = Field(default_factory=list)
+
+
 class CatalogUpdatesOut(BaseModel):
     """New questions added after optional client watermark (staff additions)."""
 
@@ -78,6 +86,9 @@ class AttemptCreate(BaseModel):
     failed_cases: int = 0
     is_correct: bool = False
     feedback: Optional[str] = None
+    verdict: str = "Wrong Answer"
+    runtime_ms: int = 0
+    total_cases: int = 0
 
 
 class AttemptOut(BaseModel):
@@ -91,6 +102,9 @@ class AttemptOut(BaseModel):
     is_correct: bool = False
     feedback: Optional[str] = None
     is_best_attempt: bool = False
+    verdict: str = "Wrong Answer"
+    runtime_ms: int = 0
+    total_cases: int = 0
     created_at: datetime
     should_move_next: bool = False
     next_question_id: int | None = None
@@ -114,6 +128,13 @@ class JudgeCaseResult(BaseModel):
     hidden: bool = False
 
 
+class JudgeRunResult(BaseModel):
+    input: str
+    expected: str
+    actual: str
+    passed: bool
+
+
 class JudgeRequest(BaseModel):
     code: str
     question_id: int | None = None
@@ -127,8 +148,11 @@ class JudgeResponse(BaseModel):
     compile_output: str
     custom_output: str | None = None
     results: list[JudgeCaseResult] = Field(default_factory=list)
+    run_results: list[JudgeRunResult] = Field(default_factory=list)
     passed_case_count: int = 0
     total_case_count: int = 0
+    status: str = "Accepted"
+    runtime_ms: int = 0
 
 
 class LeaderboardEntry(BaseModel):
