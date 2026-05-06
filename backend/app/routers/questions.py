@@ -116,20 +116,35 @@ def resume_next_question(student_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{question_id}/syllabus-next", response_model=QuestionOut)
-def get_following_question_in_syllabus(question_id: int, db: Session = Depends(get_db)):
-    """Immediate next Question by module syllabus order (for timed auto-advance)."""
+def get_following_question_in_syllabus(
+    question_id: int,
+    student_id: int | None = Query(None),
+    db: Session = Depends(get_db),
+):
+    """Next question in syllabus order, skipping solved ones when student_id is provided."""
     ordered = sorted(
         db.query(Question).all(),
         key=lambda row: (module_sort_rank(row.module), title_question_rank(row.title), row.id),
     )
+    solved_ids: set[int] = set()
+    if student_id is not None:
+        solved_ids = {
+            qid
+            for (qid,) in db.query(Attempt.question_id)
+            .filter(Attempt.student_id == student_id, Attempt.is_correct.is_(True))
+            .distinct()
+            .all()
+        }
     for index, row in enumerate(ordered):
         if row.id == question_id:
-            if index + 1 >= len(ordered):
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="No next question in syllabus order.",
-                )
-            return _serialize_question(ordered[index + 1])
+            for next_index in range(index + 1, len(ordered)):
+                candidate = ordered[next_index]
+                if student_id is None or candidate.id not in solved_ids:
+                    return _serialize_question(candidate)
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No next unsolved question in syllabus order.",
+            )
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Question not found.")
 
 

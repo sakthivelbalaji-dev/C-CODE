@@ -125,6 +125,54 @@ def _auto_seed_questions_if_empty() -> None:
 _auto_seed_questions_if_empty()
 
 
+def _dedupe_and_fill_syllabus_questions() -> None:
+    """
+    Keep one row per title (merge attempts into keeper), then add missing syllabus rows.
+    Prevents repeated questions and ensures full syllabus coverage.
+    """
+    from .database import SessionLocal
+    from .models import Attempt, Question
+    from .topic_question_seeds import seed_topic_questions_into_db
+
+    db = SessionLocal()
+    try:
+        rows = db.query(Question).order_by(Question.id.asc()).all()
+        if rows:
+            by_title: dict[str, list[Question]] = {}
+            for row in rows:
+                key = (row.title or "").strip().lower()
+                by_title.setdefault(key, []).append(row)
+
+            deduped = 0
+            for _, group in by_title.items():
+                if len(group) <= 1:
+                    continue
+                keeper = group[0]
+                for duplicate in group[1:]:
+                    db.query(Attempt).filter(Attempt.question_id == duplicate.id).update(
+                        {Attempt.question_id: keeper.id},
+                        synchronize_session=False,
+                    )
+                    db.delete(duplicate)
+                    deduped += 1
+
+            if deduped:
+                db.commit()
+                logger.info("Removed %d duplicate question row(s) by title.", deduped)
+
+        added = seed_topic_questions_into_db(db, reset=False)
+        if added:
+            logger.info("Added %d missing syllabus question(s).", added)
+    except Exception:
+        logger.exception("Failed to dedupe/fill syllabus questions.")
+        db.rollback()
+    finally:
+        db.close()
+
+
+_dedupe_and_fill_syllabus_questions()
+
+
 def _ensure_test_cases_for_all_questions() -> None:
     """
     Ensure every question has non-empty test_cases_json.
