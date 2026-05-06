@@ -133,37 +133,75 @@ def _dedupe_and_fill_syllabus_questions() -> None:
     """
     from .database import SessionLocal
     from .models import Attempt, Question
+    from .question_content import build_problem_content
     from .topic_question_seeds import seed_topic_questions_into_db
 
     db = SessionLocal()
     try:
-        rows = db.query(Question).order_by(Question.id.asc()).all()
-        if rows:
-            by_title: dict[str, list[Question]] = {}
-            for row in rows:
-                key = (row.title or "").strip().lower()
-                by_title.setdefault(key, []).append(row)
-
-            deduped = 0
-            for _, group in by_title.items():
-                if len(group) <= 1:
-                    continue
-                keeper = group[0]
-                for duplicate in group[1:]:
-                    db.query(Attempt).filter(Attempt.question_id == duplicate.id).update(
-                        {Attempt.question_id: keeper.id},
-                        synchronize_session=False,
-                    )
-                    db.delete(duplicate)
-                    deduped += 1
-
-            if deduped:
-                db.commit()
-                logger.info("Removed %d duplicate question row(s) by title.", deduped)
-
         added = seed_topic_questions_into_db(db, reset=False)
         if added:
             logger.info("Added %d missing syllabus question(s).", added)
+
+        rows = db.query(Question).order_by(Question.id.asc()).all()
+        if not rows:
+            return
+
+        def _example_from_title(title: str) -> str:
+            # "<module> — <topic> — Qx: Example" -> "Example"
+            if ":" in title:
+                return title.split(":", 1)[1].strip()
+            return title.strip()
+
+        # Normalize syllabus question content so test cases are canonical/correct.
+        corrected = 0
+        for question in rows:
+            if not (question.module or "").startswith("Phase "):
+                continue
+            example = _example_from_title(question.title or "")
+            if not example:
+                continue
+            try:
+                content = build_problem_content(question.module or "Phase 1 — Foundation", question.module or "General", example)
+                question.description = content.get("description", question.description)
+                question.input_format = content.get("input_format", question.input_format)
+                question.output_format = content.get("output_format", question.output_format)
+                question.constraints = content.get("constraints", question.constraints)
+                question.sample_input = content.get("sample_input", question.sample_input)
+                question.expected_output = content.get("expected_output", question.expected_output)
+                question.examples_json = content.get("examples_json", question.examples_json)
+                question.test_cases_json = content.get("test_cases_json", question.test_cases_json)
+                question.algorithm_hint = content.get("algorithm_hint", question.algorithm_hint)
+                question.functions_hint = content.get("functions_hint", question.functions_hint)
+                corrected += 1
+            except Exception:
+                continue
+
+        # Remove repeats by semantic key (module + normalized example text), not only title.
+        by_semantic_key: dict[str, list[Question]] = {}
+        for row in rows:
+            example = _example_from_title(row.title or "")
+            semantic = f"{(row.module or '').strip().lower()}|{example.strip().lower()}"
+            by_semantic_key.setdefault(semantic, []).append(row)
+
+        deduped = 0
+        for _, group in by_semantic_key.items():
+            if len(group) <= 1:
+                continue
+            keeper = group[0]
+            for duplicate in group[1:]:
+                db.query(Attempt).filter(Attempt.question_id == duplicate.id).update(
+                    {Attempt.question_id: keeper.id},
+                    synchronize_session=False,
+                )
+                db.delete(duplicate)
+                deduped += 1
+
+        if corrected or deduped:
+            db.commit()
+        if corrected:
+            logger.info("Corrected canonical content/test cases for %d syllabus question(s).", corrected)
+        if deduped:
+            logger.info("Removed %d duplicate question row(s) by semantic key.", deduped)
     except Exception:
         logger.exception("Failed to dedupe/fill syllabus questions.")
         db.rollback()
