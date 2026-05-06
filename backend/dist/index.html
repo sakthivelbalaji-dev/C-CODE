@@ -12,11 +12,19 @@
       (function () {
         var NativeDate = Date;
         var wallNowMs = NativeDate.now.bind(NativeDate);
+        var wallPerfMs =
+          typeof performance !== "undefined" && typeof performance.now === "function"
+            ? performance.now.bind(performance)
+            : function () {
+                return (wallNowMs() % 86400000) / 1000;
+              };
 
         var freezeTimer = false;
         var frozenNow = null;
+        var freezePerfAt = null;
         var gateActive = false;
         var gateFrozenNow = null;
+        var gatePerfAt = null;
 
         var monacoGeneration = 0;
         var armedGeneration = -1;
@@ -48,6 +56,7 @@
         function resetAcceptedFreezeForNavigation() {
           freezeTimer = false;
           frozenNow = null;
+          freezePerfAt = null;
         }
 
         function isAuthLikePath() {
@@ -57,6 +66,125 @@
 
         function hasMonacoEditor() {
           return !!document.querySelector(".monaco-editor");
+        }
+
+        /** True on question/coding routes so the gate arms before Monaco (timer must not advance early). */
+        function isQuestionCodingRoute() {
+          if (isAuthLikePath()) return false;
+          var p = String(location.pathname || "").toLowerCase();
+          return (
+            p.indexOf("/question") !== -1 ||
+            p.indexOf("/questions") !== -1 ||
+            p.indexOf("/workspace") !== -1
+          );
+        }
+
+        function formatGateMinutesLabel() {
+          var raw = Number(window.__CCODELAB_GATE_MINUTES);
+          var mins = Math.max(1, Math.min(240, Math.floor(Number.isFinite(raw) ? raw : 15)));
+          var mm = mins < 10 ? "0" + mins : String(mins);
+          return "Time left " + mm + ":00";
+        }
+
+        var maskRaf = null;
+        var maskId = "__ccodelab_timer_gate_mask";
+
+        function ensureMaskLayer() {
+          var el = document.getElementById(maskId);
+          if (!el) {
+            el = document.createElement("div");
+            el.id = maskId;
+            el.setAttribute("aria-hidden", "true");
+            document.body.appendChild(el);
+          }
+          return el;
+        }
+
+        function positionTimerMask() {
+          if (!gateActive) return;
+          if (!document.body) return;
+          var pill = resolveTimerPillElement();
+          var layer = ensureMaskLayer();
+          if (!pill || typeof pill.getBoundingClientRect !== "function") {
+            layer.style.display = "none";
+            return;
+          }
+          var r = pill.getBoundingClientRect();
+          var cs = window.getComputedStyle(pill);
+          layer.textContent = formatGateMinutesLabel();
+          layer.style.cssText = [
+            "position:fixed",
+            "left:" + Math.round(r.left) + "px",
+            "top:" + Math.round(r.top) + "px",
+            "width:" + Math.max(Math.round(r.width), 88) + "px",
+            "height:" + Math.max(Math.round(r.height), 26) + "px",
+            "display:flex",
+            "align-items:center",
+            "justify-content:center",
+            "z-index:2147483645",
+            "pointer-events:none",
+            "border-radius:" + (cs.borderRadius || "999px"),
+            "background:" + (cs.backgroundColor || "rgb(30 58 138)"),
+            "color:" + (cs.color || "rgb(147 197 253)"),
+            "font-weight:700",
+            "font-size:" + (cs.fontSize || "12px"),
+            "font-family:" + (cs.fontFamily || "system-ui,sans-serif"),
+            "box-sizing:border-box",
+            "white-space:nowrap",
+            "overflow:hidden",
+            "margin:0",
+            "padding:0 8px",
+          ].join(";");
+        }
+
+        function maskFrame() {
+          if (!gateActive) {
+            maskRaf = null;
+            return;
+          }
+          positionTimerMask();
+          maskRaf = window.requestAnimationFrame(maskFrame);
+        }
+
+        function startTimerMaskLoop() {
+          stopTimerMaskLoop();
+          positionTimerMask();
+          maskRaf = window.requestAnimationFrame(maskFrame);
+        }
+
+        function stopTimerMaskLoop() {
+          if (maskRaf !== null) {
+            window.cancelAnimationFrame(maskRaf);
+            maskRaf = null;
+          }
+        }
+
+        function removeTimerMask() {
+          stopTimerMaskLoop();
+          var el = document.getElementById(maskId);
+          if (el)
+            try {
+              el.remove();
+            } catch (_m) {}
+        }
+
+        function patchedPerfNow() {
+          if (freezeTimer && typeof freezePerfAt === "number") return freezePerfAt;
+          if (gateActive && typeof gatePerfAt === "number") return gatePerfAt;
+          return wallPerfMs();
+        }
+
+        try {
+          Object.defineProperty(performance, "now", {
+            configurable: true,
+            enumerable: true,
+            writable: true,
+            value: patchedPerfNow,
+          });
+        } catch (_perfdef) {
+          try {
+            performance.now = patchedPerfNow;
+          } catch (_perf2) {}
         }
 
         function synthEpochMs() {
@@ -173,7 +301,9 @@
         function armQuestionGate() {
           gateActive = true;
           gateFrozenNow = wallNowMs();
+          gatePerfAt = wallPerfMs();
           removeInlineStartButton();
+          startTimerMaskLoop();
           window.setTimeout(function () {
             if (gateActive) if (!tryMountInlineStartButton()) scheduleInlineStartAttempts();
           }, 0);
@@ -182,6 +312,8 @@
         function releaseQuestionGateQuiet() {
           gateActive = false;
           gateFrozenNow = null;
+          gatePerfAt = null;
+          removeTimerMask();
           removeInlineStartButton();
         }
 
@@ -197,7 +329,13 @@
         }
 
         function maybeArmGateForCodingView() {
-          if (isAuthLikePath() || !hasMonacoEditor()) {
+          if (isAuthLikePath()) {
+            releaseQuestionGateQuiet();
+            armedGeneration = -1;
+            return;
+          }
+          var coding = isQuestionCodingRoute() || hasMonacoEditor();
+          if (!coding) {
             releaseQuestionGateQuiet();
             armedGeneration = -1;
             return;
@@ -246,6 +384,7 @@
           if (ok) {
             freezeTimer = true;
             frozenNow = wallNowMs();
+            freezePerfAt = wallPerfMs();
           }
         }
 
@@ -255,15 +394,18 @@
             var has = hasMonacoEditor();
             if (has && !hadMonaco && !isAuthLikePath()) {
               hadMonaco = true;
-              bumpMonacoGeneration();
+              if (!isQuestionCodingRoute()) bumpMonacoGeneration();
             }
             if (!has && hadMonaco) {
               hadMonaco = false;
-              releaseQuestionGateQuiet();
-              armedGeneration = -1;
+              if (!isQuestionCodingRoute()) {
+                releaseQuestionGateQuiet();
+                armedGeneration = -1;
+              }
             }
-            if (gateActive && document.body && !document.getElementById(inlineStartId)) {
-              tryMountInlineStartButton();
+            if (gateActive && document.body) {
+              positionTimerMask();
+              if (!document.getElementById(inlineStartId)) tryMountInlineStartButton();
             }
           });
           mo.observe(document.documentElement, { childList: true, subtree: true });
