@@ -8,6 +8,324 @@
     <meta name="format-detection" content="telephone=no" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>c-code-lab</title>
+    <script>
+      (function () {
+        var NativeDate = Date;
+        var wallNowMs = NativeDate.now.bind(NativeDate);
+
+        var freezeTimer = false;
+        var frozenNow = null;
+        var gateActive = false;
+        var gateFrozenNow = null;
+
+        var monacoGeneration = 0;
+        var armedGeneration = -1;
+        var lastRoutingBumpAt = 0;
+        var inlineStartId = "__ccodelab_inline_start";
+
+        function resetAcceptedFreezeForNavigation() {
+          freezeTimer = false;
+          frozenNow = null;
+        }
+
+        function isAuthLikePath() {
+          var path = (location.pathname || "").toLowerCase();
+          return path === "/login" || path === "/signup" || path === "/register";
+        }
+
+        function hasMonacoEditor() {
+          return !!document.querySelector(".monaco-editor");
+        }
+
+        function synthEpochMs() {
+          if (freezeTimer && typeof frozenNow === "number") return frozenNow;
+          if (gateActive && typeof gateFrozenNow === "number") return gateFrozenNow;
+          return wallNowMs();
+        }
+
+        function WrappedDate() {
+          var args = [];
+          for (var i = 0; i < arguments.length; i++) args.push(arguments[i]);
+          if (args.length === 0) {
+            return new NativeDate(synthEpochMs());
+          }
+          try {
+            return Reflect.construct(NativeDate, args);
+          } catch (_eR) {
+            return NativeDate.apply(null, args);
+          }
+        }
+
+        WrappedDate.prototype = NativeDate.prototype;
+        Object.setPrototypeOf(WrappedDate, NativeDate);
+        WrappedDate.UTC = NativeDate.UTC;
+        WrappedDate.parse = NativeDate.parse;
+        WrappedDate.now = synthEpochMs;
+        window.Date = WrappedDate;
+
+        function findTimeLeftAnchor() {
+          try {
+            if (!document.body) return null;
+            var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
+            var node;
+            var best = null;
+            var bestLen = 1e9;
+            while ((node = walker.nextNode())) {
+              var raw = node.nodeValue || "";
+              if (!/\btime\s*left\b/i.test(raw)) continue;
+              var p = node.parentElement;
+              if (!p || !document.body.contains(p)) continue;
+              if (p.closest("nav,[role=\"navigation\"]")) continue;
+              var len = ((p.textContent || "") + "").trim().length;
+              if (len < 8 || len > 120) continue;
+              if (len < bestLen) {
+                bestLen = len;
+                best = p;
+              }
+            }
+            return best;
+          } catch (_) {
+            return null;
+          }
+        }
+
+        function removeInlineStartButton() {
+          var prev = document.getElementById(inlineStartId);
+          if (prev)
+            try {
+              prev.remove();
+            } catch (_eZ) {}
+        }
+
+        function tryMountInlineStartButton() {
+          if (!gateActive) return false;
+          if (!document.body) return false;
+          if (document.getElementById(inlineStartId)) return true;
+          var timerEl = findTimeLeftAnchor();
+          if (!timerEl || !timerEl.parentNode) return false;
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.id = inlineStartId;
+          btn.textContent = "Start";
+          btn.setAttribute("aria-label", "Start question timer");
+          btn.title = "Timer stays paused until you click Start.";
+          btn.style.cssText = [
+            "display:inline-flex",
+            "align-items:center",
+            "justify-content:center",
+            "box-sizing:border-box",
+            "vertical-align:middle",
+            "padding:6px 14px",
+            "margin-right:10px",
+            "border:none",
+            "border-radius:999px",
+            "background:#059669",
+            "color:#fff",
+            "font-family:inherit",
+            "font-size:12px",
+            "font-weight:700",
+            "cursor:pointer",
+            "flex-shrink:0",
+          ].join(";");
+          btn.onclick = function (ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            releaseQuestionGate();
+          };
+          try {
+            timerEl.parentNode.insertBefore(btn, timerEl);
+          } catch (_) {
+            try {
+              timerEl.parentNode.appendChild(btn);
+            } catch (_eY) {}
+          }
+          return !!document.getElementById(inlineStartId);
+        }
+
+        function scheduleInlineStartAttempts() {
+          var tries = 0;
+          var tick = window.setInterval(function () {
+            if (!gateActive || tries++ > 60) {
+              window.clearInterval(tick);
+              return;
+            }
+            if (tryMountInlineStartButton()) window.clearInterval(tick);
+          }, 120);
+        }
+
+        function armQuestionGate() {
+          gateActive = true;
+          gateFrozenNow = wallNowMs();
+          removeInlineStartButton();
+          window.setTimeout(function () {
+            if (gateActive) if (!tryMountInlineStartButton()) scheduleInlineStartAttempts();
+          }, 0);
+        }
+
+        function releaseQuestionGateQuiet() {
+          gateActive = false;
+          gateFrozenNow = null;
+          removeInlineStartButton();
+        }
+
+        function releaseQuestionGate() {
+          releaseQuestionGateQuiet();
+          armedGeneration = monacoGeneration;
+        }
+
+        function maybeArmGateForCodingView() {
+          if (isAuthLikePath() || !hasMonacoEditor()) {
+            releaseQuestionGateQuiet();
+            armedGeneration = -1;
+            return;
+          }
+          if (monacoGeneration !== armedGeneration) armQuestionGate();
+        }
+
+        function bumpMonacoGeneration() {
+          monacoGeneration++;
+          queueMicrotask(maybeArmGateForCodingView);
+        }
+
+        function patchHistory() {
+          ["pushState", "replaceState"].forEach(function (methodName) {
+            var orig = history[methodName];
+            if (typeof orig !== "function") return;
+            history[methodName] = function () {
+              var prev = location.pathname + location.search + location.hash;
+              var ret = orig.apply(this, arguments);
+              var next = location.pathname + location.search + location.hash;
+              resetAcceptedFreezeForNavigation();
+              if (prev !== next) {
+                lastRoutingBumpAt = wallNowMs();
+                bumpMonacoGeneration();
+              } else queueMicrotask(maybeArmGateForCodingView);
+              return ret;
+            };
+          });
+          window.addEventListener("popstate", function () {
+            resetAcceptedFreezeForNavigation();
+            lastRoutingBumpAt = wallNowMs();
+            bumpMonacoGeneration();
+          });
+        }
+
+        patchHistory();
+
+        function markAccepted(data) {
+          if (!data || typeof data !== "object") return;
+          var ok =
+            data.status === "Accepted" ||
+            (typeof data.passed_case_count === "number" &&
+              typeof data.total_case_count === "number" &&
+              data.total_case_count > 0 &&
+              data.passed_case_count === data.total_case_count);
+          if (ok) {
+            freezeTimer = true;
+            frozenNow = wallNowMs();
+          }
+        }
+
+        try {
+          var hadMonaco = false;
+          var mo = new MutationObserver(function () {
+            var has = hasMonacoEditor();
+            if (has && !hadMonaco && !isAuthLikePath()) {
+              hadMonaco = true;
+              bumpMonacoGeneration();
+            }
+            if (!has && hadMonaco) {
+              hadMonaco = false;
+              releaseQuestionGateQuiet();
+              armedGeneration = -1;
+            }
+            if (gateActive && document.body && !document.getElementById(inlineStartId)) {
+              tryMountInlineStartButton();
+            }
+          });
+          mo.observe(document.documentElement, { childList: true, subtree: true });
+        } catch (_eMo) {}
+
+        window.addEventListener("hashchange", function () {
+          resetAcceptedFreezeForNavigation();
+          lastRoutingBumpAt = wallNowMs();
+          bumpMonacoGeneration();
+        });
+
+        function parseJudgeSubmitMode(init) {
+          try {
+            if (!init || !init.method || init.method.toUpperCase() !== "POST") return null;
+            if (!init.body || typeof init.body !== "string") return null;
+            var body = JSON.parse(init.body);
+            if (body && body.mode === "submit") return true;
+          } catch (_ignored) {}
+          return null;
+        }
+
+        function isJudgeAccepted(data) {
+          if (!data || typeof data !== "object") return false;
+          if (data.status === "Accepted") return true;
+          return (
+            typeof data.passed_case_count === "number" &&
+            typeof data.total_case_count === "number" &&
+            data.total_case_count > 0 &&
+            data.passed_case_count === data.total_case_count
+          );
+        }
+
+        var originalFetch = window.fetch;
+        window.fetch = function (input, init) {
+          var normalizedInput = input;
+          var judgeSubmitHint = parseJudgeSubmitMode(init);
+          var requestUrl = "";
+          if (typeof input === "string") {
+            requestUrl = input;
+          } else if (input && input.url) {
+            requestUrl = input.url;
+          }
+          var isJudgePath =
+            /(^|\/)api\/judge\/c(\?|$)/.test(requestUrl) || /(^|\/)judge\/c(\?|$)/.test(requestUrl);
+          var isAbsolute =
+            /^https?:\/\//i.test(requestUrl) || requestUrl.startsWith("/") || requestUrl.startsWith("//");
+          if (isJudgePath && !isAbsolute && typeof input === "string") {
+            if (/api\/judge\/c(\?|$)/.test(requestUrl)) {
+              normalizedInput = "/" + requestUrl.replace(/^\.?\/*/, "");
+            } else {
+              normalizedInput = "/judge/c";
+              if (requestUrl.indexOf("?") !== -1) {
+                normalizedInput += requestUrl.slice(requestUrl.indexOf("?"));
+              }
+            }
+            requestUrl = normalizedInput;
+          }
+          return originalFetch.call(this, normalizedInput, init).then(function (response) {
+            try {
+              if (!/\/api\/judge\/c(\?|$)/.test(requestUrl)) {
+                if (!/\/judge\/c(\?|$)/.test(requestUrl)) return response;
+              }
+              if (!(response && response.ok)) return response;
+              response
+                .clone()
+                .json()
+                .then(function (data) {
+                  markAccepted(data);
+                  if (judgeSubmitHint && isJudgeAccepted(data)) {
+                    window.setTimeout(function () {
+                      resetAcceptedFreezeForNavigation();
+                      if (wallNowMs() - lastRoutingBumpAt > 700) bumpMonacoGeneration();
+                    }, 450);
+                  }
+                })
+                .catch(function () {});
+            } catch (eFetch) {}
+            return response;
+          });
+        };
+
+        queueMicrotask(maybeArmGateForCodingView);
+        window.addEventListener("load", maybeArmGateForCodingView);
+      })();
+    </script>
     <script type="module" crossorigin src="/assets/index-Ce7ajylh.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-CszLzKAH.css">
   </head>
@@ -55,334 +373,6 @@
         });
 
         resetIdleTimer();
-      })();
-    </script>
-    <script>
-      (function () {
-        var freezeTimer = false;
-        var frozenNow = null;
-        var gateActive = false;
-        var gateFrozenNow = null;
-        /** Increments whenever the code editor mounts or the URL changes → new "question session" needs Start. */
-        var monacoGeneration = 0;
-        var armedGeneration = -1;
-        /** Used to avoid double “Start” bumps when SPA routing already incremented generation. */
-        var lastRoutingBumpAt = 0;
-        var inlineStartId = "__ccodelab_inline_start";
-
-        var originalDateNow = Date.now.bind(Date);
-
-        function resetAcceptedFreezeForNavigation() {
-          freezeTimer = false;
-          frozenNow = null;
-        }
-
-        function isAuthLikePath() {
-          var path = (location.pathname || "").toLowerCase();
-          return (
-            path === "/login" ||
-            path === "/signup" ||
-            path === "/register"
-          );
-        }
-
-        function hasMonacoEditor() {
-          return !!document.querySelector(".monaco-editor");
-        }
-
-        function findTimeLeftAnchor() {
-          try {
-            var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
-            var node;
-            var best = null;
-            var bestLen = 1e9;
-            while ((node = walker.nextNode())) {
-              var raw = node.nodeValue || "";
-              if (!/\btime\s*left\b/i.test(raw)) continue;
-              var p = node.parentElement;
-              if (!p || !document.body.contains(p)) continue;
-              if (p.closest("nav,[role=\"navigation\"]")) continue;
-              var len = ((p.textContent || "") + "").trim().length;
-              if (len < 8 || len > 120) continue;
-              if (len < bestLen) {
-                bestLen = len;
-                best = p;
-              }
-            }
-            return best;
-          } catch (_) {
-            return null;
-          }
-        }
-
-        function removeInlineStartButton() {
-          var prev = document.getElementById(inlineStartId);
-          if (prev) {
-            try {
-              prev.remove();
-            } catch (_e3) {}
-          }
-        }
-
-        function tryMountInlineStartButton() {
-          if (!gateActive) return false;
-          if (document.getElementById(inlineStartId)) return true;
-
-          var timerEl = findTimeLeftAnchor();
-          if (!timerEl || !timerEl.parentNode) return false;
-
-          var btn = document.createElement("button");
-          btn.type = "button";
-          btn.id = inlineStartId;
-          btn.textContent = "Start";
-          btn.setAttribute("aria-label", "Start question timer");
-          btn.title = "Click to start the timer for this question";
-          btn.style.cssText = [
-            "display:inline-flex",
-            "align-items:center",
-            "justify-content:center",
-            "box-sizing:border-box",
-            "vertical-align:middle",
-            "padding:6px 14px",
-            "margin-right:10px",
-            "border:none",
-            "border-radius:999px",
-            "background:#059669",
-            "color:#fff",
-            "font-family:inherit",
-            "font-size:12px",
-            "font-weight:700",
-            "letter-spacing:0.03em",
-            "cursor:pointer",
-            "flex-shrink:0",
-            "line-height:1.25",
-          ].join(";");
-          btn.onmouseenter = function () {
-            btn.style.background = "#047857";
-          };
-          btn.onmouseleave = function () {
-            btn.style.background = "#059669";
-          };
-          btn.onclick = function (ev) {
-            ev.preventDefault();
-            ev.stopPropagation();
-            releaseQuestionGate();
-          };
-
-          try {
-            timerEl.parentNode.insertBefore(btn, timerEl);
-          } catch (_) {
-            try {
-              timerEl.parentNode.appendChild(btn);
-            } catch (_e4) {}
-          }
-          return !!document.getElementById(inlineStartId);
-        }
-
-        function scheduleInlineStartAttempts() {
-          var tries = 0;
-          var tick = window.setInterval(function () {
-            if (!gateActive || tries++ > 60) {
-              window.clearInterval(tick);
-              return;
-            }
-            if (tryMountInlineStartButton()) window.clearInterval(tick);
-          }, 120);
-        }
-
-        function armQuestionGate() {
-          gateActive = true;
-          gateFrozenNow = originalDateNow();
-          removeInlineStartButton();
-          if (!tryMountInlineStartButton()) scheduleInlineStartAttempts();
-        }
-
-        function releaseQuestionGateQuiet() {
-          gateActive = false;
-          gateFrozenNow = null;
-          removeInlineStartButton();
-        }
-
-        function releaseQuestionGate() {
-          releaseQuestionGateQuiet();
-          armedGeneration = monacoGeneration;
-        }
-
-        function maybeArmGateForCodingView() {
-          if (isAuthLikePath() || !hasMonacoEditor()) {
-            releaseQuestionGateQuiet();
-            armedGeneration = -1;
-            return;
-          }
-          if (monacoGeneration !== armedGeneration) {
-            armQuestionGate();
-          }
-        }
-
-        function bumpMonacoGeneration() {
-          monacoGeneration++;
-          queueMicrotask(maybeArmGateForCodingView);
-        }
-
-        function patchHistory() {
-          ["pushState", "replaceState"].forEach(function (methodName) {
-            var orig = history[methodName];
-            if (typeof orig !== "function") return;
-            history[methodName] = function () {
-              var prev = location.pathname + location.search + location.hash;
-              var ret = orig.apply(this, arguments);
-              var next = location.pathname + location.search + location.hash;
-              resetAcceptedFreezeForNavigation();
-              if (prev !== next) {
-                lastRoutingBumpAt = originalDateNow();
-                bumpMonacoGeneration();
-              } else queueMicrotask(maybeArmGateForCodingView);
-              return ret;
-            };
-          });
-          window.addEventListener("popstate", function () {
-            resetAcceptedFreezeForNavigation();
-            lastRoutingBumpAt = originalDateNow();
-            bumpMonacoGeneration();
-          });
-        }
-
-        patchHistory();
-
-        Date.now = function () {
-          if (freezeTimer && typeof frozenNow === "number") {
-            return frozenNow;
-          }
-          if (gateActive && typeof gateFrozenNow === "number") {
-            return gateFrozenNow;
-          }
-          return originalDateNow();
-        };
-
-        function markAccepted(data) {
-          if (!data || typeof data !== "object") {
-            return;
-          }
-          if (data.status === "Accepted") {
-            freezeTimer = true;
-            frozenNow = originalDateNow();
-            return;
-          }
-          if (
-            typeof data.passed_case_count === "number" &&
-            typeof data.total_case_count === "number" &&
-            data.total_case_count > 0 &&
-            data.passed_case_count === data.total_case_count
-          ) {
-            freezeTimer = true;
-            frozenNow = originalDateNow();
-          }
-        }
-
-        try {
-          var hadMonaco = false;
-          var mo = new MutationObserver(function () {
-            var has = hasMonacoEditor();
-            if (has && !hadMonaco && !isAuthLikePath()) {
-              hadMonaco = true;
-              bumpMonacoGeneration();
-            }
-            if (!has && hadMonaco) {
-              hadMonaco = false;
-              releaseQuestionGateQuiet();
-              armedGeneration = -1;
-            }
-            if (gateActive && !document.getElementById(inlineStartId)) {
-              tryMountInlineStartButton();
-            }
-          });
-          mo.observe(document.documentElement, { childList: true, subtree: true });
-        } catch (_e2) {}
-
-        window.addEventListener("hashchange", function () {
-          resetAcceptedFreezeForNavigation();
-          lastRoutingBumpAt = originalDateNow();
-          bumpMonacoGeneration();
-        });
-
-        function parseJudgeSubmitMode(init) {
-          try {
-            if (!init || !init.method || init.method.toUpperCase() !== "POST") return null;
-            if (!init.body || typeof init.body !== "string") return null;
-            var body = JSON.parse(init.body);
-            if (body && body.mode === "submit") return true;
-          } catch (_ignored) {}
-          return null;
-        }
-
-        function isJudgeAccepted(data) {
-          if (!data || typeof data !== "object") return false;
-          if (data.status === "Accepted") return true;
-          return (
-            typeof data.passed_case_count === "number" &&
-            typeof data.total_case_count === "number" &&
-            data.total_case_count > 0 &&
-            data.passed_case_count === data.total_case_count
-          );
-        }
-
-        queueMicrotask(maybeArmGateForCodingView);
-        window.addEventListener("load", function () {
-          maybeArmGateForCodingView();
-        });
-
-        var originalFetch = window.fetch;
-        window.fetch = function (input, init) {
-          var normalizedInput = input;
-          var judgeSubmitHint = parseJudgeSubmitMode(init);
-          var requestUrl = "";
-          if (typeof input === "string") {
-            requestUrl = input;
-          } else if (input && input.url) {
-            requestUrl = input.url;
-          }
-          var isJudgePath =
-            /(^|\/)api\/judge\/c(\?|$)/.test(requestUrl) || /(^|\/)judge\/c(\?|$)/.test(requestUrl);
-          var isAbsolute =
-            /^https?:\/\//i.test(requestUrl) || requestUrl.startsWith("/") || requestUrl.startsWith("//");
-          if (isJudgePath && !isAbsolute && typeof input === "string") {
-            if (/api\/judge\/c(\?|$)/.test(requestUrl)) {
-              normalizedInput = "/" + requestUrl.replace(/^\.?\/*/, "");
-            } else {
-              normalizedInput = "/judge/c";
-              if (requestUrl.indexOf("?") !== -1) {
-                normalizedInput += requestUrl.slice(requestUrl.indexOf("?"));
-              }
-            }
-            requestUrl = normalizedInput;
-          }
-          return originalFetch.call(this, normalizedInput, init).then(function (response) {
-            try {
-              if (!/\/api\/judge\/c(\?|$)/.test(requestUrl)) {
-                if (!/\/judge\/c(\?|$)/.test(requestUrl)) {
-                  return response;
-                }
-              }
-              if (!(response && response.ok)) {
-                return response;
-              }
-              response
-                .clone()
-                .json()
-                .then(function (data) {
-                  markAccepted(data);
-                  if (judgeSubmitHint && isJudgeAccepted(data)) {
-                    window.setTimeout(function () {
-                      resetAcceptedFreezeForNavigation();
-                      if (originalDateNow() - lastRoutingBumpAt > 700) bumpMonacoGeneration();
-                    }, 450);
-                  }
-                })
-                .catch(function () {});
-            } catch (e) {}
-            return response;
-          });
-        };
       })();
     </script>
   </body>
