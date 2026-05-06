@@ -44,133 +44,111 @@ DEFAULT_FALLBACK_CASES = [
 
 @router.post("/c", response_model=JudgeResponse)
 def judge_c_code(payload: JudgeRequest, db: Session = Depends(get_db)):
-    compiler = _resolve_compiler()
-    if not compiler:
-        raise HTTPException(
-            status_code=500,
-            detail="No C compiler found. Install gcc or clang and add it to PATH.",
-        )
+    try:
+        compiler = _resolve_compiler()
+        if not compiler:
+            return JudgeResponse(compile_ok=False, compile_output="No C compiler found. Install gcc or clang and add it to PATH.", custom_output=None, results=[], run_results=[], passed_case_count=0, total_case_count=0, status="Compilation Error", runtime_ms=0)
+        if not payload.code.strip():
+            return JudgeResponse(compile_ok=False, compile_output="Code is empty", custom_output=None, results=[], run_results=[], passed_case_count=0, total_case_count=0, status="Compilation Error", runtime_ms=0)
 
-    if not payload.code.strip():
-        raise HTTPException(status_code=400, detail="Code is empty")
+        question = None
+        if payload.question_id is not None:
+            question = db.query(Question).filter(Question.id == payload.question_id).first()
+            if not question:
+                return JudgeResponse(compile_ok=False, compile_output="Question not found", custom_output=None, results=[], run_results=[], passed_case_count=0, total_case_count=0, status="Runtime Error", runtime_ms=0)
 
-    question = None
-    if payload.question_id is not None:
-        question = db.query(Question).filter(Question.id == payload.question_id).first()
-        if not question:
-            raise HTTPException(status_code=404, detail="Question not found")
+        test_cases_raw = list(payload.test_cases)
+        if question:
+            try:
+                test_cases_raw = json.loads(question.test_cases_json or "[]")
+            except json.JSONDecodeError:
+                test_cases_raw = []
+            if not isinstance(test_cases_raw, list):
+                test_cases_raw = []
+            if not test_cases_raw:
+                test_cases_raw = _fallback_cases_from_question(question)
 
-    test_cases_raw = list(payload.test_cases)
-    if question:
-        test_cases_raw = json.loads(question.test_cases_json or "[]")
-        if not isinstance(test_cases_raw, list):
-            test_cases_raw = []
-        if not test_cases_raw:
-            test_cases_raw = _fallback_cases_from_question(question)
+        submit_mode = (payload.mode or "run").strip().lower() == "submit"
+        eval_cases = [c for c in test_cases_raw if isinstance(c, dict)]
 
-    mode = (payload.mode or "run").strip().lower()
-    submit_mode = mode == "submit"
+        with tempfile.TemporaryDirectory(prefix="ccodelab_") as temp_dir:
+            source_file = Path(temp_dir) / "main.c"
+            binary_file = Path(temp_dir) / ("main.exe" if os.name == "nt" else "main")
+            source_file.write_text(payload.code, encoding="utf-8")
 
-    # LeetCode-style behavior: when question_id is present, always evaluate
-    # the server-side cases (including hidden ones) for both Run and Submit.
-    eval_cases = [c for c in test_cases_raw if isinstance(c, dict)]
+            compile_ok, compile_output = _compile_source(compiler, source_file, binary_file)
+            if not compile_ok:
+                return JudgeResponse(compile_ok=False, compile_output=compile_output, custom_output=None, results=[], run_results=[], passed_case_count=0, total_case_count=0, status="Compilation Error", runtime_ms=0)
 
-    with tempfile.TemporaryDirectory(prefix="ccodelab_") as temp_dir:
-        source_file = Path(temp_dir) / "main.c"
-        binary_file = Path(temp_dir) / ("main.exe" if os.name == "nt" else "main")
-        source_file.write_text(payload.code, encoding="utf-8")
+            custom_output = None
+            if payload.custom_input is not None:
+                custom_result = _run_binary(binary_file, payload.custom_input)
+                custom_output = str(custom_result.get("output", ""))
 
-        compile_ok, compile_output = _compile_source(compiler, source_file, binary_file)
-        if not compile_ok:
-            return JudgeResponse(
-                compile_ok=False,
-                compile_output=compile_output,
-                custom_output=None,
-                results=[],
-                run_results=[],
-                passed_case_count=0,
-                total_case_count=0,
-                status="Compilation Error",
-                runtime_ms=0,
-            )
+            case_results: list[JudgeCaseResult] = []
+            run_results: list[JudgeRunResult] = []
+            runtime_ms = 0
+            final_status = "Accepted"
+            for index, case in enumerate(eval_cases):
+                case_input = str(case.get("input", ""))
+                expected_output = _normalize_output(str(case.get("output", "")))
+                run_result = _run_binary(binary_file, case_input)
+                runtime_ms += int(run_result["runtime_ms"])
+                got_output = _normalize_output(str(run_result["output"]))
+                if run_result["status"] == "Time Limit Exceeded":
+                    passed = False
+                    final_status = "Time Limit Exceeded"
+                elif run_result["status"] == "Runtime Error":
+                    passed = False
+                    if final_status == "Accepted":
+                        final_status = "Runtime Error"
+                else:
+                    passed = got_output == expected_output
+                    if not passed and final_status == "Accepted":
+                        final_status = "Wrong Answer"
 
-        custom_output = None
-        if payload.custom_input is not None:
-            custom_result = _run_binary(binary_file, payload.custom_input)
-            custom_output = str(custom_result.get("output", ""))
+                hidden_case = question is not None and is_hidden_test_case(case)
+                if question is None:
+                    show_input, show_expected, show_got = case_input, expected_output, got_output
+                else:
+                    show_input, show_expected, show_got = "-", "-", "-"
 
-        case_results: list[JudgeCaseResult] = []
-        run_results: list[JudgeRunResult] = []
-        runtime_ms = 0
-        final_status = "Accepted"
-        for index, case in enumerate(eval_cases):
-            case_input = str(case.get("input", ""))
-            expected_output = _normalize_output(str(case.get("output", "")))
-            run_result = _run_binary(binary_file, case_input)
-            runtime_ms += run_result["runtime_ms"]
-            got_output = _normalize_output(run_result["output"])
-            if run_result["status"] == "Time Limit Exceeded":
-                passed = False
-                final_status = "Time Limit Exceeded"
-            elif run_result["status"] == "Runtime Error":
-                passed = False
-                if final_status == "Accepted":
-                    final_status = "Runtime Error"
-            else:
-                passed = got_output == expected_output
-                if not passed and final_status == "Accepted":
-                    final_status = "Wrong Answer"
-            hidden_case = question is not None and is_hidden_test_case(case)
-            if question is None:
-                show_input = case_input
-                show_expected = expected_output
-                show_got = got_output
-            else:
-                # Never expose actual test data for question-bound judge calls.
-                show_input = "-"
-                show_expected = "-"
-                show_got = "-"
-            case_results.append(
-                JudgeCaseResult(
-                    index=index + 1,
-                    input=show_input,
-                    expected=show_expected,
-                    got=show_got,
-                    status="Passed" if passed else "Failed",
-                    passed=passed,
-                    hidden=hidden_case,
-                )
-            )
-            if not submit_mode:
-                run_results.append(
-                    JudgeRunResult(
+                case_results.append(
+                    JudgeCaseResult(
                         index=index + 1,
+                        input=show_input,
+                        expected=show_expected,
+                        got=show_got,
                         status="Passed" if passed else "Failed",
                         passed=passed,
+                        hidden=hidden_case,
                     )
                 )
-            if submit_mode and final_status in ("Time Limit Exceeded", "Runtime Error"):
-                break
+                if not submit_mode:
+                    run_results.append(
+                        JudgeRunResult(index=index + 1, status="Passed" if passed else "Failed", passed=passed)
+                    )
+                if submit_mode and final_status in ("Time Limit Exceeded", "Runtime Error"):
+                    break
 
-        passed_n = sum(1 for row in case_results if row.passed)
-        total_n = len(case_results)
-        if total_n == 0 and compile_ok:
-            final_status = "Accepted"
-        elif passed_n == total_n and final_status == "Accepted":
-            final_status = "Accepted"
-        return JudgeResponse(
-            compile_ok=True,
-            compile_output=compile_output,
-            custom_output=custom_output.strip() if custom_output is not None else None,
-            # Keep case status rows for both run/submit so older frontend logic
-            # can compute correctness, while inputs/outputs stay masked.
-            results=case_results,
-            run_results=[] if submit_mode else run_results,
-            passed_case_count=passed_n,
-            total_case_count=total_n,
-            status=final_status,
-            runtime_ms=runtime_ms,
-        )
+            passed_n = sum(1 for row in case_results if row.passed)
+            total_n = len(case_results)
+            if total_n > 0 and passed_n == total_n:
+                final_status = "Accepted"
+
+            return JudgeResponse(
+                compile_ok=True,
+                compile_output=compile_output,
+                custom_output=custom_output.strip() if custom_output is not None else None,
+                results=case_results,
+                run_results=[] if submit_mode else run_results,
+                passed_case_count=passed_n,
+                total_case_count=total_n,
+                status=final_status,
+                runtime_ms=runtime_ms,
+            )
+    except Exception as exc:
+        return JudgeResponse(compile_ok=False, compile_output=f"Judge internal error: {exc}", custom_output=None, results=[], run_results=[], passed_case_count=0, total_case_count=0, status="Runtime Error", runtime_ms=0)
 
 
 def _resolve_compiler() -> str | None:
