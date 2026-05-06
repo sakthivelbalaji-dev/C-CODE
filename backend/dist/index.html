@@ -90,7 +90,26 @@
           return !!document.querySelector(".monaco-editor");
         }
 
+        function injectStartOverlayStyles() {
+          if (document.getElementById("__ccodelab_start_styles")) return;
+          var st = document.createElement("style");
+          st.id = "__ccodelab_start_styles";
+          st.textContent =
+            "@keyframes __ccodelab_spin{to{transform:rotate(360deg)}}" +
+            "#__ccodelab_question_start_overlay .__ccodelab_start_spinner{" +
+            "width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,.35);" +
+            "border-top-color:#fff;animation:__ccodelab_spin .7s linear infinite;flex-shrink:0;" +
+            "display:none" +
+            "}" +
+            "#__ccodelab_question_start_overlay.__ccodelab_loading .__ccodelab_start_spinner{display:block}" +
+            "#__ccodelab_question_start_overlay.__ccodelab_loading .__ccodelab_start_btn{" +
+            "opacity:.9;cursor:wait" +
+            "}";
+          document.head.appendChild(st);
+        }
+
         function ensureOverlay() {
+          injectStartOverlayStyles();
           if (overlayEl) return overlayEl;
           overlayEl = document.createElement("div");
           overlayEl.id = "__ccodelab_question_start_overlay";
@@ -99,34 +118,82 @@
             "inset:0",
             "z-index:2147483646",
             "display:flex",
-            "align-items:center",
+            "align-items:flex-end",
             "justify-content:center",
-            "background:rgba(17,24,39,0.45)",
-            "backdrop-filter:blur(4px)",
+            "pointer-events:none",
+            "background:transparent",
             "font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif",
+            "padding:0 16px max(20px, env(safe-area-inset-bottom))",
           ].join(";");
           var card = document.createElement("div");
-          card.style.cssText =
-            "background:#fff;padding:28px 32px;border-radius:14px;max-width:420px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,0.2);";
-          card.innerHTML =
-            '<p style="margin:0 0 12px;font-size:1.05rem;color:#374151;line-height:1.5;font-weight:600">Ready to solve this question?</p>' +
-            '<p style="margin:0 0 22px;font-size:0.9rem;color:#6b7280;line-height:1.45">' +
-            "The timer is paused until you begin. Click <strong>Start</strong> when you’re ready to continue the test.</p>";
+          card.style.cssText = [
+            "pointer-events:auto",
+            "max-width:min(520px, 100%)",
+            "width:100%",
+            "margin-bottom:12px",
+            "padding:14px 18px",
+            "border-radius:999px",
+            "display:flex",
+            "flex-wrap:wrap",
+            "align-items:center",
+            "justify-content:center",
+            "gap:12px 16px",
+            "background:rgba(30,41,59,0.92)",
+            "border:1px solid rgba(148,163,184,0.35)",
+            "box-shadow:0 12px 40px rgba(0,0,0,.35), 0 0 0 1px rgba(255,255,255,.04) inset",
+          ].join(";");
+          var msg = document.createElement("div");
+          msg.style.cssText =
+            "flex:1 1 220px;min-width:180px;text-align:center;line-height:1.45;font-size:13px;color:#e2e8f0";
+          msg.innerHTML =
+            '<span style="display:block;font-weight:600;color:#f8fafc;margin-bottom:4px">Timer paused</span>' +
+            '<span style="opacity:.9">Click <strong style="color:#fff">Start</strong> when ready — the workspace stays visible.</span>';
+          var btnWrap = document.createElement("div");
+          btnWrap.style.cssText = "display:flex;align-items:center;gap:0";
           var btn = document.createElement("button");
           btn.type = "button";
-          btn.textContent = "Start";
+          btn.className = "__ccodelab_start_btn";
+          btn.setAttribute("aria-busy", "false");
+          var spinner = document.createElement("span");
+          spinner.className = "__ccodelab_start_spinner";
+          spinner.setAttribute("aria-hidden", "true");
+          var btnLabel = document.createElement("span");
+          btnLabel.className = "__ccodelab_start_label";
+          btnLabel.textContent = "Start";
+          btn.appendChild(spinner);
+          btn.appendChild(btnLabel);
           btn.style.cssText =
-            "background:#2563eb;color:#fff;border:none;padding:11px 32px;font-size:1rem;font-weight:600;border-radius:10px;cursor:pointer";
+            "background:linear-gradient(180deg,#3b82f6,#2563eb);color:#fff;border:none;padding:12px 28px;" +
+            "font-size:15px;font-weight:700;border-radius:999px;cursor:pointer;box-shadow:0 4px 14px rgba(37,99,235,.45);" +
+            "display:inline-flex;align-items:center;gap:10px;transition:transform .15s ease, box-shadow .15s ease;" +
+            "min-width:160px;justify-content:center";
           btn.onmouseenter = function () {
-            btn.style.background = "#1d4ed8";
+            if (overlayEl.classList.contains("__ccodelab_loading")) return;
+            btn.style.transform = "translateY(-1px)";
+            btn.style.boxShadow = "0 6px 18px rgba(37,99,235,.55)";
           };
           btn.onmouseleave = function () {
-            btn.style.background = "#2563eb";
+            btn.style.transform = "";
+            btn.style.boxShadow = "0 4px 14px rgba(37,99,235,.45)";
           };
           btn.onclick = function () {
-            releaseQuestionGate();
+            if (overlayEl.classList.contains("__ccodelab_loading")) return;
+            overlayEl.classList.add("__ccodelab_loading");
+            btn.disabled = true;
+            btn.setAttribute("aria-busy", "true");
+            btnLabel.textContent = "Starting…";
+            window.setTimeout(function () {
+              releaseQuestionGate();
+              if (!overlayEl) return;
+              overlayEl.classList.remove("__ccodelab_loading");
+              btn.disabled = false;
+              btn.setAttribute("aria-busy", "false");
+              btnLabel.textContent = "Start";
+            }, 420);
           };
-          card.appendChild(btn);
+          btnWrap.appendChild(btn);
+          card.appendChild(msg);
+          card.appendChild(btnWrap);
           overlayEl.appendChild(card);
           return overlayEl;
         }
@@ -145,6 +212,7 @@
           try {
             overlayEl.remove();
           } catch (_e) {}
+          overlayEl = null;
         }
 
         function armQuestionGate() {
