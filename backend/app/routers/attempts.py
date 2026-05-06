@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Attempt, Question, Student
 from ..schemas import AttemptCreate, AttemptDetailOut, AttemptOut, LeaderboardEntry
-from ..syllabus import module_order_case
+from ..syllabus import module_sort_rank, title_question_rank
 
 router = APIRouter(prefix="/attempts", tags=["attempts"])
 
@@ -102,14 +102,11 @@ def create_attempt(payload: AttemptCreate, db: Session = Depends(get_db)):
                 .all()
             )
         }
-        ordered_question_ids = [
-            question_id
-            for (question_id,) in (
-                db.query(Question.id)
-                .order_by(module_order_case(Question.module), Question.id.asc())
-                .all()
-            )
-        ]
+        ordered_questions = sorted(
+            db.query(Question).all(),
+            key=lambda row: (module_sort_rank(row.module), title_question_rank(row.title), row.id),
+        )
+        ordered_question_ids = [row.id for row in ordered_questions]
         if ordered_question_ids:
             try:
                 current_index = ordered_question_ids.index(attempt.question_id)

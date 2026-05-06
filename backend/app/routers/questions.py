@@ -16,7 +16,7 @@ from ..schemas import (
     QuestionPublicOut,
     ResumeProgressOut,
 )
-from ..syllabus import module_order_case
+from ..syllabus import module_sort_rank, title_question_rank
 
 router = APIRouter(prefix="/questions", tags=["questions"])
 DEFAULT_FALLBACK_CASES = [
@@ -34,10 +34,9 @@ def _next_unsolved_question(db: Session, student_id: int) -> tuple[Question | No
         .distinct()
         .all()
     }
-    ordered = (
-        db.query(Question)
-        .order_by(module_order_case(Question.module), Question.id.asc())
-        .all()
+    ordered = sorted(
+        db.query(Question).all(),
+        key=lambda row: (module_sort_rank(row.module), title_question_rank(row.title), row.id),
     )
     for row in ordered:
         if row.id not in solved_ids:
@@ -65,7 +64,10 @@ def list_questions(module: str | None = None, difficulty: str | None = None, db:
         query = query.filter(Question.module == module)
     if difficulty:
         query = query.filter(Question.difficulty == difficulty.lower())
-    questions = query.order_by(module_order_case(Question.module), Question.id.asc()).all()
+    questions = sorted(
+        query.all(),
+        key=lambda row: (module_sort_rank(row.module), title_question_rank(row.title), row.id),
+    )
     return [_serialize_question(question) for question in questions]
 
 
@@ -116,10 +118,9 @@ def resume_next_question(student_id: int, db: Session = Depends(get_db)):
 @router.get("/{question_id}/syllabus-next", response_model=QuestionOut)
 def get_following_question_in_syllabus(question_id: int, db: Session = Depends(get_db)):
     """Immediate next Question by module syllabus order (for timed auto-advance)."""
-    ordered = (
-        db.query(Question)
-        .order_by(module_order_case(Question.module), Question.id.asc())
-        .all()
+    ordered = sorted(
+        db.query(Question).all(),
+        key=lambda row: (module_sort_rank(row.module), title_question_rank(row.title), row.id),
     )
     for index, row in enumerate(ordered):
         if row.id == question_id:
