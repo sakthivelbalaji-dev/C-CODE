@@ -117,6 +117,17 @@ app = FastAPI(title="C Code Lab API", version="1.0.0")
 
 
 @app.middleware("http")
+async def normalize_legacy_judge_paths(request: Request, call_next):
+    """Handle frontend relative URL bugs by rewriting nested judge paths."""
+    path = request.scope.get("path", "")
+    if path != "/api/judge/c" and path.endswith("/api/judge/c"):
+        request.scope["path"] = "/api/judge/c"
+    elif path != "/judge/c" and path.endswith("/judge/c"):
+        request.scope["path"] = "/judge/c"
+    return await call_next(request)
+
+
+@app.middleware("http")
 async def browser_compat_headers(request: Request, call_next):
     """Consistent MIME/referrer behaviour across Chromium, Safari, Firefox, Edge."""
     response = await call_next(request)
