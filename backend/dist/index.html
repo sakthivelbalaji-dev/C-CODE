@@ -137,6 +137,7 @@
         var pillIntervalId = null;
         var pillEndTs = null;
         var pillStarted = false;
+        var floatingPillRepositionBound = false;
 
         function wallClockMs() {
           if (freezeTimer && typeof frozenNow === "number") return frozenNow;
@@ -170,18 +171,55 @@
         function editorHeaderActionsRow() {
           var h2list = document.querySelectorAll("#root h2");
           for (var i = 0; i < h2list.length; i++) {
-            if ((h2list[i].textContent || "").trim() !== "Code editor") continue;
+            var title = ((h2list[i].textContent || "").replace(/\s+/g, " ") || "").trim();
+            if (title.indexOf("Code editor") === -1) continue;
             var el = h2list[i];
-            for (var depth = 0; depth < 14 && el; depth++) {
+            for (var depth = 0; depth < 16 && el; depth++) {
               el = el.parentElement;
-              if (!el) break;
-              var cn = el.className;
-              if (typeof cn === "string" && cn.indexOf("justify-end") !== -1 && cn.indexOf("gap-2") !== -1) {
+              if (!el || !el.classList) continue;
+              if (el.classList.contains("justify-end") && el.classList.contains("gap-2")) {
+                return el;
+              }
+              var cn = typeof el.className === "string" ? el.className : "";
+              if (cn.indexOf("justify-end") !== -1 && cn.indexOf("gap-2") !== -1) {
                 return el;
               }
             }
           }
           return null;
+        }
+
+        function clearPillFloatingLayout() {
+          if (!pillHost) return;
+          pillHost.style.position = "";
+          pillHost.style.left = "";
+          pillHost.style.right = "";
+          pillHost.style.top = "";
+          pillHost.style.zIndex = "";
+        }
+
+        function positionFloatingTimerPill() {
+          if (!pillHost || pillHost.parentNode !== document.body) return;
+          var monaco = document.querySelector(".monaco-editor");
+          if (!monaco) return;
+          var r = monaco.getBoundingClientRect();
+          var edge = Math.max(10, Math.round(window.innerWidth - r.right));
+          var topPx = Math.max(64, Math.round(r.top - 40));
+          pillHost.style.position = "fixed";
+          pillHost.style.left = "auto";
+          pillHost.style.right = edge + "px";
+          pillHost.style.top = topPx + "px";
+          pillHost.style.zIndex = "2147483000";
+        }
+
+        function bindFloatingPillReposition() {
+          if (floatingPillRepositionBound) return;
+          floatingPillRepositionBound = true;
+          var fn = function () {
+            positionFloatingTimerPill();
+          };
+          window.addEventListener("resize", fn);
+          window.addEventListener("scroll", fn, true);
         }
 
         function rowIsStaffUnlimited(row) {
@@ -236,14 +274,22 @@
 
         function mountTimerPillBeforeNative() {
           var row = editorHeaderActionsRow();
-          if (!row || rowIsStaffUnlimited(row)) {
+          if (row && rowIsStaffUnlimited(row)) {
             tearDownUiTimer();
             return null;
           }
-          if (!pillHost) pillHost = createTimerPillEl();
-          if (pillHost.parentNode !== row) {
-            row.insertBefore(pillHost, row.firstChild);
+          if (row) {
+            if (!pillHost) pillHost = createTimerPillEl();
+            clearPillFloatingLayout();
+            if (pillHost.parentNode !== row) row.insertBefore(pillHost, row.firstChild);
+            return pillHost;
           }
+          var monaco = document.querySelector(".monaco-editor");
+          if (!monaco) return null;
+          if (!pillHost) pillHost = createTimerPillEl();
+          if (pillHost.parentNode !== document.body) document.body.appendChild(pillHost);
+          bindFloatingPillReposition();
+          positionFloatingTimerPill();
           return pillHost;
         }
 
