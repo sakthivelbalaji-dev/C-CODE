@@ -10,6 +10,12 @@
     <title>c-code-lab</title>
     <script type="module" crossorigin src="/assets/index-Ce7ajylh.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-CszLzKAH.css">
+    <style id="__ccodelab_hide_time_left_pill">
+      /* Bundled editor: countdown pill tooltip (see index-Ce7ajylh.js) */
+      #root span[title*="allocated for this question"] {
+        display: none !important;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
@@ -21,6 +27,52 @@
         '<p style="font-family:system-ui,sans-serif;padding:2rem;max-width:40rem;">' +
         'This app needs a recent browser with JavaScript enabled (ES modules). ' +
         'Update your browser or turn on JavaScript, then reload.</p>';
+    </script>
+    <script>
+      /* Hide "Time left …" / countdown pill (loading + tick states); language pill uses font-medium, not font-mono. */
+      (function () {
+        var HIDDEN = "__ccodelab_no_time_pill";
+        function hideInTree(node) {
+          if (!node || node.nodeType !== 1) return;
+          if (node.matches && node.matches("span.font-mono.rounded-full, span.rounded-full.font-mono")) {
+            var text = (node.textContent || "").trim();
+            if (/^Time left/i.test(text)) {
+              node.setAttribute(HIDDEN, "1");
+              node.style.setProperty("display", "none", "important");
+            }
+          }
+          var spans = node.querySelectorAll
+            ? node.querySelectorAll("span.font-mono.rounded-full, span.rounded-full.font-mono")
+            : [];
+          for (var i = 0; i < spans.length; i++) {
+            var el = spans[i];
+            var t = (el.textContent || "").trim();
+            if (/^Time left/i.test(t)) {
+              el.setAttribute(HIDDEN, "1");
+              el.style.setProperty("display", "none", "important");
+            }
+          }
+        }
+        function scan() {
+          hideInTree(document.getElementById("root") || document.body);
+        }
+        try {
+          var mo = new MutationObserver(function (muts) {
+            for (var m = 0; m < muts.length; m++) {
+              var mu = muts[m];
+              if (mu.type !== "childList") continue;
+              for (var j = 0; j < mu.addedNodes.length; j++) hideInTree(mu.addedNodes[j]);
+            }
+          });
+          mo.observe(document.documentElement, { childList: true, subtree: true });
+        } catch (_eM) {}
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", scan);
+        } else {
+          scan();
+        }
+        window.setInterval(scan, 400);
+      })();
     </script>
     <script>
       (function () {
