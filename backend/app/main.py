@@ -131,6 +131,7 @@ def _ensure_test_cases_for_all_questions() -> None:
     """
     from .database import SessionLocal
     from .models import Question
+    from .question_content import build_problem_content
 
     db = SessionLocal()
     try:
@@ -139,7 +140,27 @@ def _ensure_test_cases_for_all_questions() -> None:
             return
 
         def has_cases(q: Question) -> bool:
-            return bool((q.test_cases_json or "").strip())
+            raw = (q.test_cases_json or "").strip()
+            if not raw:
+                return False
+            try:
+                parsed = json.loads(raw)
+            except json.JSONDecodeError:
+                return False
+            if not isinstance(parsed, list) or not parsed:
+                return False
+            for row in parsed:
+                if not isinstance(row, dict):
+                    return False
+                if "input" not in row or "output" not in row:
+                    return False
+            return True
+
+        def example_from_title(title: str) -> str:
+            # "<module> — <topic> — Qx: Example" => "Example"
+            if ":" in title:
+                return title.split(":", 1)[1].strip()
+            return title.strip()
 
         source = next((q for q in sorted(rows, key=lambda q: q.id) if has_cases(q)), None)
         source_payload = source.test_cases_json if source else DEFAULT_TEST_CASES_JSON
@@ -147,7 +168,19 @@ def _ensure_test_cases_for_all_questions() -> None:
         updated = 0
         for question in rows:
             if not has_cases(question):
-                question.test_cases_json = source_payload
+                try:
+                    content = build_problem_content(
+                        question.module or "Phase 1 — Foundation",
+                        question.module or "General",
+                        example_from_title(question.title or ""),
+                    )
+                    payload = content.get("test_cases_json", "")
+                    if isinstance(payload, str) and payload.strip():
+                        question.test_cases_json = payload
+                    else:
+                        question.test_cases_json = source_payload
+                except Exception:
+                    question.test_cases_json = source_payload
                 updated += 1
 
         if updated:
