@@ -22,5 +22,40 @@
         'This app needs a recent browser with JavaScript enabled (ES modules). ' +
         'Update your browser or turn on JavaScript, then reload.</p>';
     </script>
+    <script>
+      (function () {
+        var IDLE_TIMEOUT_MS = Number(window.__CCODELAB_IDLE_TIMEOUT_MS || 15 * 60 * 1000);
+        var timerId = null;
+
+        function forceSignOut() {
+          try {
+            localStorage.clear();
+            sessionStorage.clear();
+          } catch (e) {
+            // Ignore storage access errors (private mode/blocked storage).
+          }
+          window.location.replace('/login');
+        }
+
+        function resetIdleTimer() {
+          if (timerId !== null) {
+            window.clearTimeout(timerId);
+          }
+          timerId = window.setTimeout(forceSignOut, IDLE_TIMEOUT_MS);
+        }
+
+        ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click'].forEach(function (eventName) {
+          window.addEventListener(eventName, resetIdleTimer, { passive: true });
+        });
+        window.addEventListener('focus', resetIdleTimer);
+        document.addEventListener('visibilitychange', function () {
+          if (document.visibilityState === 'visible') {
+            resetIdleTimer();
+          }
+        });
+
+        resetIdleTimer();
+      })();
+    </script>
   </body>
 </html>
