@@ -19,14 +19,14 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 @router.post("/signup", response_model=StudentOut, status_code=status.HTTP_201_CREATED)
 def signup(payload: StudentCreate, db: Session = Depends(get_db)):
     if payload.role not in ALLOWED_ROLES:
-        raise HTTPException(status_code=400, detail="Role must be 'student' or 'staff'")
+        raise HTTPException(status_code=400, detail="Role must be 'student', 'staff', or 'admin'")
 
     email_norm = normalize_institutional_email(str(payload.email))
 
-    if payload.role == "staff" and not is_authorised_staff_email(email_norm):
+    if payload.role in {"staff", "admin"} and not is_authorised_staff_email(email_norm):
         raise HTTPException(
             status_code=403,
-            detail="Staff signup is only allowed for the two authorised staff emails "
+            detail="Staff/admin signup is only allowed for the two authorised staff emails "
             "(hod.aids / staff.aids @rajalakshmi.edu.in by default — set STAFF_EMAIL_ALLOWLIST to override).",
         )
 
@@ -52,10 +52,10 @@ def signup(payload: StudentCreate, db: Session = Depends(get_db)):
 @router.post("/login", response_model=StudentOut)
 def login(payload: StudentLogin, db: Session = Depends(get_db)):
     if payload.role not in ALLOWED_ROLES:
-        raise HTTPException(status_code=400, detail="Role must be 'student' or 'staff'")
+        raise HTTPException(status_code=400, detail="Role must be 'student', 'staff', or 'admin'")
 
     email_norm = normalize_institutional_email(str(payload.email))
-    if payload.role == "staff" and not is_authorised_staff_email(email_norm):
+    if payload.role in {"staff", "admin"} and not is_authorised_staff_email(email_norm):
         try:
             allowed = ", ".join(sorted(staff_email_allowlist()))
         except ValueError as exc:

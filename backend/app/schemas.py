@@ -3,7 +3,7 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-ALLOWED_ROLES = {"student", "staff"}
+ALLOWED_ROLES = {"student", "staff", "admin"}
 
 
 class StudentBase(BaseModel):

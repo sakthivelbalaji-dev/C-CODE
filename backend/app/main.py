@@ -16,7 +16,7 @@ from fastapi.staticfiles import StaticFiles
 
 from . import models  # noqa: F401 — register ORM models before create_all
 from .database import Base, engine, ensure_schema_updates, get_db
-from .routers import attempts, auth, judge, questions
+from .routers import admin, attempts, auth, judge, questions
 from .schemas import JudgeRequest, JudgeResponse
 
 logger = logging.getLogger(__name__)
@@ -35,6 +35,7 @@ _FRONTEND_DIR = _REPO_ROOT / "frontend"
 DIST_DIR = _BACKEND_DIR / "dist"
 ASSETS_DIR = DIST_DIR / "assets"
 INDEX_FILE = DIST_DIR / "index.html"
+ADMIN_FILE = DIST_DIR / "admin.html"
 
 
 def _skip_frontend_prepare() -> bool:
@@ -363,6 +364,7 @@ app.include_router(auth.router, prefix="/api")
 app.include_router(questions.router, prefix="/api")
 app.include_router(attempts.router, prefix="/api")
 app.include_router(judge.router, prefix="/api")
+app.include_router(admin.router, prefix="/api")
 # Backward-compatible judge path for older built frontend bundles.
 app.include_router(judge.router)
 
@@ -387,6 +389,13 @@ def health_check():
     if INDEX_FILE.exists():
         return FileResponse(str(INDEX_FILE))
     return {"status": "ok", "message": "C Code Lab backend is running"}
+
+
+@app.get("/admin")
+def serve_admin_panel():
+    if ADMIN_FILE.exists():
+        return FileResponse(str(ADMIN_FILE))
+    raise HTTPException(status_code=404, detail="Admin panel not found")
 
 
 @app.get("/{full_path:path}")
