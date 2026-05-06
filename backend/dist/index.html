@@ -15,10 +15,31 @@
       #root span[title*="allocated for this question"] {
         display: none !important;
       }
+      /* Always-visible host for our injected timer (React timer uses setInterval+storage, not Date) */
+      #__ccodelab_timer_dock {
+        position: fixed;
+        top: 76px;
+        right: 18px;
+        z-index: 2147483630;
+        max-width: calc(100vw - 36px);
+        pointer-events: none;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      }
+      #__ccodelab_timer_dock > * {
+        pointer-events: auto;
+      }
+      @media (max-width: 640px) {
+        #__ccodelab_timer_dock {
+          top: 64px;
+          right: 10px;
+          left: auto;
+        }
+      }
     </style>
   </head>
   <body>
     <div id="root"></div>
+    <div id="__ccodelab_timer_dock" aria-live="polite" title="Question time (starts after Start)"></div>
     <noscript>
       <p style="font-family: system-ui, sans-serif; padding: 2rem">Enable JavaScript to use C Code Lab.</p>
     </noscript>
@@ -111,6 +132,44 @@
     </script>
     <script>
       (function () {
+        /**
+         * React bundle uses setInterval(…, 1000) + localStorage `ccodelab_q_remaining_*` — NOT Date.now.
+         * Pause that tick while Start gate is active (must run before deferred module loads).
+         */
+        window.__CCODELAB_QUESTION_GATE_ACTIVE = false;
+        (function patchOneSecondIntervalGate() {
+          var orig = window.setInterval.bind(window);
+          window.setInterval = function (handler, timeout) {
+            var t = Number(timeout);
+            if (t !== 1000 || typeof handler !== "function") {
+              return orig.apply(window, arguments);
+            }
+            var wrapped = function () {
+              if (window.__CCODELAB_QUESTION_GATE_ACTIVE) return;
+              return handler.apply(this, arguments);
+            };
+            return orig(wrapped, timeout);
+          };
+        })();
+
+        function preHealZeroRemainingStorageFallback() {
+          var defSec = 15 * 60;
+          [window.localStorage, window.sessionStorage].forEach(function (st) {
+            for (var i = st.length - 1; i >= 0; i--) {
+              var k = st.key(i);
+              if (!k || k.indexOf("ccodelab_q_remaining_") !== 0) continue;
+              var v = st.getItem(k);
+              var n = Number.parseInt(String(v ?? ""), 10);
+              if (v === "0" || v === "" || !Number.isFinite(n) || n < 0) {
+                try {
+                  st.setItem(k, String(defSec));
+                } catch (_he) {}
+              }
+            }
+          });
+        }
+        preHealZeroRemainingStorageFallback();
+
         /**
          * Countdown freeze (must run before React): wall clock + monotonic clock + new Date().
          * Previous version only patched Date.now() — React timers often use performance.now() / new Date().
@@ -233,6 +292,46 @@
           return m ? Math.max(1, parseInt(m[1], 10)) : 15;
         }
 
+        function inferQuestionIdStr() {
+          try {
+            var sp = new URLSearchParams(window.location.search || "");
+            var q = sp.get("question") || sp.get("retry") || sp.get("id");
+            if (q && /^\d+$/.test(String(q))) return String(q);
+            var m = (window.location.pathname || "").match(/\/(?:question|questions)\/(\d+)/i);
+            if (m) return m[1];
+          } catch (_q) {}
+          return null;
+        }
+
+        function repairReactRemainingStorage(secondsFull) {
+          if (!Number.isFinite(secondsFull) || secondsFull < 60) secondsFull = 15 * 60;
+          var qid = inferQuestionIdStr();
+          var stores = [window.localStorage, window.sessionStorage];
+          for (var s = 0; s < stores.length; s++) {
+            var st = stores[s];
+            var keys = [];
+            for (var i = 0; i < st.length; i++) {
+              var k = st.key(i);
+              if (k && k.indexOf("ccodelab_q_remaining_") === 0) keys.push(k);
+            }
+            var hit = [];
+            for (var j = 0; j < keys.length; j++) {
+              var key = keys[j];
+              if (!qid) {
+                hit.push(key);
+                continue;
+              }
+              if (key === "ccodelab_q_remaining_anon_" + qid || key.endsWith("_" + qid)) hit.push(key);
+            }
+            var toFix = hit.length ? hit : keys.length === 1 ? [keys[0]] : [];
+            for (var h = 0; h < toFix.length; h++) {
+              try {
+                st.setItem(toFix[h], String(secondsFull));
+              } catch (_se) {}
+            }
+          }
+        }
+
         function stopUiTimerTick() {
           if (pillIntervalId != null) {
             window.clearInterval(pillIntervalId);
@@ -241,6 +340,7 @@
         }
 
         function tearDownUiTimer() {
+          window.__CCODELAB_QUESTION_GATE_ACTIVE = false;
           stopUiTimerTick();
           pillStarted = false;
           pillEndTs = null;
@@ -273,20 +373,26 @@
         }
 
         function mountTimerPillBeforeNative() {
+          var dock = document.getElementById("__ccodelab_timer_dock");
           var row = editorHeaderActionsRow();
           if (row && rowIsStaffUnlimited(row)) {
             tearDownUiTimer();
             return null;
           }
+          if (!hasMonacoEditor() || isAuthLikePath()) return null;
+          if (!pillHost) pillHost = createTimerPillEl();
+          clearPillFloatingLayout();
+          /* Fixed dock: always visible above the app chrome */
+          if (dock) {
+            if (pillHost.parentNode !== dock) dock.appendChild(pillHost);
+            return pillHost;
+          }
           if (row) {
-            if (!pillHost) pillHost = createTimerPillEl();
-            clearPillFloatingLayout();
             if (pillHost.parentNode !== row) row.insertBefore(pillHost, row.firstChild);
             return pillHost;
           }
           var monaco = document.querySelector(".monaco-editor");
           if (!monaco) return null;
-          if (!pillHost) pillHost = createTimerPillEl();
           if (pillHost.parentNode !== document.body) document.body.appendChild(pillHost);
           bindFloatingPillReposition();
           positionFloatingTimerPill();
@@ -426,14 +532,19 @@
 
         function armQuestionGate() {
           gateActive = true;
+          window.__CCODELAB_QUESTION_GATE_ACTIVE = true;
           gateFrozenNow = originalDateNow();
           gateFrozenPerf = originalPerfNow();
+          try {
+            repairReactRemainingStorage(getAllocatedMinutesFromDom() * 60);
+          } catch (_r) {}
           showStartOverlay();
           window.setTimeout(setUiTimerPausedAppearance, 0);
         }
 
         function releaseQuestionGateQuiet() {
           gateActive = false;
+          window.__CCODELAB_QUESTION_GATE_ACTIVE = false;
           gateFrozenNow = null;
           gateFrozenPerf = null;
           hideStartOverlay();
