@@ -114,6 +114,50 @@ def _auto_seed_questions_if_empty() -> None:
 
 _auto_seed_questions_if_empty()
 
+
+def _ensure_test_cases_for_all_questions() -> None:
+    """
+    Ensure every question has non-empty test_cases_json.
+    Fills missing entries by copying from source question id=5,
+    or first available question that already has test cases.
+    """
+    from .database import SessionLocal
+    from .models import Question
+
+    db = SessionLocal()
+    try:
+        rows = db.query(Question).all()
+        if not rows:
+            return
+
+        def has_cases(q: Question) -> bool:
+            return bool((q.test_cases_json or "").strip())
+
+        source = db.query(Question).filter(Question.id == 5).first()
+        if not source or not has_cases(source):
+            source = next((q for q in rows if has_cases(q)), None)
+        if not source:
+            logger.warning("No source test cases found; skipping global test-case backfill.")
+            return
+
+        updated = 0
+        for question in rows:
+            if not has_cases(question):
+                question.test_cases_json = source.test_cases_json
+                updated += 1
+
+        if updated:
+            db.commit()
+            logger.info("Backfilled test_cases_json for %d question(s).", updated)
+    except Exception:
+        logger.exception("Failed to backfill missing test cases.")
+        db.rollback()
+    finally:
+        db.close()
+
+
+_ensure_test_cases_for_all_questions()
+
 app = FastAPI(title="C Code Lab API", version="1.0.0")
 
 
