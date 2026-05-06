@@ -194,7 +194,7 @@ def _serialize_question(question: Question) -> dict:
         normalized_tests = list(DEFAULT_FALLBACK_CASES)
 
     case_count = len(normalized_tests)
-    masked_cases = [{"input": "", "output": ""} for _ in range(case_count)]
+    masked_cases = [{"input": "[hidden]", "output": "[hidden]"} for _ in range(case_count)]
     return {
         "id": question.id,
         "title": question.title,

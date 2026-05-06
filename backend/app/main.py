@@ -126,8 +126,8 @@ _auto_seed_questions_if_empty()
 def _ensure_test_cases_for_all_questions() -> None:
     """
     Ensure every question has non-empty test_cases_json.
-    Fills missing entries by copying from source question id=5,
-    or first available question that already has test cases.
+    Fills missing entries by copying from the first available question
+    that already has test cases, else uses built-in defaults.
     """
     from .database import SessionLocal
     from .models import Question
@@ -141,9 +141,7 @@ def _ensure_test_cases_for_all_questions() -> None:
         def has_cases(q: Question) -> bool:
             return bool((q.test_cases_json or "").strip())
 
-        source = db.query(Question).filter(Question.id == 5).first()
-        if not source or not has_cases(source):
-            source = next((q for q in rows if has_cases(q)), None)
+        source = next((q for q in sorted(rows, key=lambda q: q.id) if has_cases(q)), None)
         source_payload = source.test_cases_json if source else DEFAULT_TEST_CASES_JSON
 
         updated = 0
