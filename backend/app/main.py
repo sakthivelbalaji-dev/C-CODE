@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -118,12 +119,27 @@ app = FastAPI(title="C Code Lab API", version="1.0.0")
 
 @app.middleware("http")
 async def normalize_legacy_judge_paths(request: Request, call_next):
-    """Handle frontend relative URL bugs by rewriting nested judge paths."""
+    """Handle frontend relative URL bugs by rewriting nested API paths."""
     path = request.scope.get("path", "")
-    if path != "/api/judge/c" and path.endswith("/api/judge/c"):
-        request.scope["path"] = "/api/judge/c"
-    elif path != "/judge/c" and path.endswith("/judge/c"):
-        request.scope["path"] = "/judge/c"
+    compact_path = re.sub(r"/+", "/", path)
+    compact_no_slash = compact_path.rstrip("/") or "/"
+
+    rewritten_path = None
+
+    # If frontend calls nested routes like /question/api/judge/c, strip prefix.
+    api_idx = compact_no_slash.find("/api/")
+    if api_idx > 0:
+        rewritten_path = compact_no_slash[api_idx:]
+
+    # Dedicated compatibility for judge endpoints with/without /api.
+    if compact_no_slash.endswith("/api/judge/c"):
+        rewritten_path = "/api/judge/c"
+    elif compact_no_slash.endswith("/judge/c"):
+        rewritten_path = "/judge/c"
+
+    if rewritten_path and rewritten_path != path:
+        request.scope["path"] = rewritten_path
+        request.scope["raw_path"] = rewritten_path.encode("utf-8")
     return await call_next(request)
 
 
