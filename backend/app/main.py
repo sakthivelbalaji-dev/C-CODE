@@ -195,6 +195,61 @@ def _ensure_test_cases_for_all_questions() -> None:
 
 _ensure_test_cases_for_all_questions()
 
+
+def _renumber_phase_question_titles() -> None:
+    """Ensure each Phase module uses serial Q numbers (Q1, Q2, Q3...)."""
+    from .database import SessionLocal
+    from .models import Question
+    from .syllabus import module_sort_rank, title_question_rank
+
+    db = SessionLocal()
+    try:
+        rows = db.query(Question).all()
+        if not rows:
+            return
+
+        phase_rows = [q for q in rows if (q.module or "").startswith("Phase ")]
+        if not phase_rows:
+            return
+
+        grouped: dict[str, list[Question]] = {}
+        for question in phase_rows:
+            grouped.setdefault(question.module, []).append(question)
+
+        changed = 0
+        for module_name, items in grouped.items():
+            ordered = sorted(
+                items,
+                key=lambda row: (module_sort_rank(row.module), title_question_rank(row.title), row.id),
+            )
+            for idx, question in enumerate(ordered, start=1):
+                old_title = question.title or ""
+                if re.search(r"\bQ\s*\d+\b", old_title, flags=re.IGNORECASE):
+                    new_title = re.sub(
+                        r"\bQ\s*\d+\b",
+                        f"Q{idx}",
+                        old_title,
+                        count=1,
+                        flags=re.IGNORECASE,
+                    )
+                else:
+                    new_title = f"{old_title} — Q{idx}"
+                if new_title != old_title:
+                    question.title = new_title
+                    changed += 1
+
+        if changed:
+            db.commit()
+            logger.info("Renumbered %d phase question title(s) to serial Q order.", changed)
+    except Exception:
+        logger.exception("Failed to renumber phase question titles.")
+        db.rollback()
+    finally:
+        db.close()
+
+
+_renumber_phase_question_titles()
+
 app = FastAPI(title="C Code Lab API", version="1.0.0")
 
 
