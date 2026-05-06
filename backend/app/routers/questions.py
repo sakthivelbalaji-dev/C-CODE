@@ -169,6 +169,8 @@ def get_efficient_solution(question_id: int, student_id: int, db: Session = Depe
 
 def _serialize_question(question: Question) -> dict:
     stored_tests = json.loads(question.test_cases_json or "[]")
+    case_count = len([c for c in stored_tests if isinstance(c, dict)])
+    masked_cases = [{"input": "", "output": ""} for _ in range(case_count)]
     return {
         "id": question.id,
         "title": question.title,
@@ -181,9 +183,9 @@ def _serialize_question(question: Question) -> dict:
         "sample_input": question.sample_input,
         "expected_output": question.expected_output,
         "examples": json.loads(question.examples_json or "[]"),
-        # Never expose executable test-case payloads to student-facing clients.
-        "test_cases": [],
-        "test_case_count": 0,
+        # Frontend compatibility: keep case list shape but never expose real case data.
+        "test_cases": masked_cases,
+        "test_case_count": case_count,
         "time_limit_minutes": question.time_limit_minutes,
         "algorithm_hint": question.algorithm_hint,
         "functions_hint": question.functions_hint,
