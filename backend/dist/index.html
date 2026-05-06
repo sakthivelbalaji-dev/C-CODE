@@ -59,10 +59,20 @@
     </script>
     <script>
       (function () {
+        /**
+         * Countdown freeze (must run before React): wall clock + monotonic clock + new Date().
+         * Previous version only patched Date.now() — React timers often use performance.now() / new Date().
+         */
+        var BuiltinDate = window.Date;
+        var originalDateNow = BuiltinDate.now.bind(BuiltinDate);
+        var originalPerfNow = performance.now.bind(performance);
+
         var freezeTimer = false;
         var frozenNow = null;
         var gateActive = false;
         var gateFrozenNow = null;
+        var gateFrozenPerf = null;
+
         /** Increments whenever the code editor mounts or the URL changes → new "question session" needs Start. */
         var monacoGeneration = 0;
         var armedGeneration = -1;
@@ -70,7 +80,16 @@
         var lastRoutingBumpAt = 0;
         var overlayEl = null;
 
-        var originalDateNow = Date.now.bind(Date);
+        function wallClockMs() {
+          if (freezeTimer && typeof frozenNow === "number") return frozenNow;
+          if (gateActive && typeof gateFrozenNow === "number") return gateFrozenNow;
+          return originalDateNow();
+        }
+
+        function monotonicNow() {
+          if (gateActive && typeof gateFrozenPerf === "number") return gateFrozenPerf;
+          return originalPerfNow();
+        }
 
         function resetAcceptedFreezeForNavigation() {
           freezeTimer = false;
@@ -175,12 +194,14 @@
         function armQuestionGate() {
           gateActive = true;
           gateFrozenNow = originalDateNow();
+          gateFrozenPerf = originalPerfNow();
           showStartOverlay();
         }
 
         function releaseQuestionGateQuiet() {
           gateActive = false;
           gateFrozenNow = null;
+          gateFrozenPerf = null;
           hideStartOverlay();
         }
 
@@ -230,15 +251,38 @@
 
         patchHistory();
 
-        Date.now = function () {
-          if (freezeTimer && typeof frozenNow === "number") {
-            return frozenNow;
+        function WrappedDate() {
+          var a = arguments;
+          var n = a.length;
+          if (n === 0) return new BuiltinDate(wallClockMs());
+          if (n === 1) return new BuiltinDate(a[0]);
+          if (n === 2) return new BuiltinDate(a[0], a[1]);
+          if (n === 3) return new BuiltinDate(a[0], a[1], a[2]);
+          if (n === 4) return new BuiltinDate(a[0], a[1], a[2], a[3]);
+          if (n === 5) return new BuiltinDate(a[0], a[1], a[2], a[3], a[4]);
+          if (n === 6) return new BuiltinDate(a[0], a[1], a[2], a[3], a[4], a[5]);
+          return new BuiltinDate(a[0], a[1], a[2], a[3], a[4], a[5], a[6]);
+        }
+        WrappedDate.prototype = BuiltinDate.prototype;
+        WrappedDate.UTC = BuiltinDate.UTC;
+        WrappedDate.parse = BuiltinDate.parse;
+        WrappedDate.now = wallClockMs;
+        try {
+          for (var key in BuiltinDate) {
+            if (Object.prototype.hasOwnProperty.call(BuiltinDate, key) && !(key in WrappedDate)) {
+              try {
+                WrappedDate[key] = BuiltinDate[key];
+              } catch (_copyE) {}
+            }
           }
-          if (gateActive && typeof gateFrozenNow === "number") {
-            return gateFrozenNow;
-          }
-          return originalDateNow();
-        };
+        } catch (_keysE) {}
+        window.Date = WrappedDate;
+
+        try {
+          performance.now = function () {
+            return monotonicNow();
+          };
+        } catch (_perfAssign) {}
 
         function markAccepted(data) {
           if (!data || typeof data !== "object") {
