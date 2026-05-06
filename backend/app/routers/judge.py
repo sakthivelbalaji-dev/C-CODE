@@ -64,9 +64,9 @@ def judge_c_code(payload: JudgeRequest, db: Session = Depends(get_db)):
     mode = (payload.mode or "run").strip().lower()
     submit_mode = mode == "submit"
 
+    # LeetCode-style behavior: when question_id is present, always evaluate
+    # the server-side cases (including hidden ones) for both Run and Submit.
     eval_cases = [c for c in test_cases_raw if isinstance(c, dict)]
-    if question and not submit_mode:
-        eval_cases = [c for c in eval_cases if not is_hidden_test_case(c)]
 
     with tempfile.TemporaryDirectory(prefix="ccodelab_") as temp_dir:
         source_file = Path(temp_dir) / "main.c"
