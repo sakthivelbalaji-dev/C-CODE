@@ -67,6 +67,8 @@ class QuestionPublicOut(BaseModel):
     sample_input: Optional[str] = None
     expected_output: Optional[str] = None
     examples: list[dict[str, str]] = Field(default_factory=list)
+    test_cases: list[dict[str, Any]] = Field(default_factory=list)
+    test_case_count: int = 0
 
 
 class CatalogUpdatesOut(BaseModel):

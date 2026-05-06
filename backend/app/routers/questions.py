@@ -147,6 +147,8 @@ def get_question(question_id: int, db: Session = Depends(get_db)):
         "sample_input": serialized["sample_input"],
         "expected_output": serialized["expected_output"],
         "examples": serialized["examples"],
+        "test_cases": serialized["test_cases"],
+        "test_case_count": serialized["test_case_count"],
     }
 
 
