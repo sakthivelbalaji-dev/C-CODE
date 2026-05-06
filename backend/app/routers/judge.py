@@ -89,7 +89,8 @@ def judge_c_code(payload: JudgeRequest, db: Session = Depends(get_db)):
 
         custom_output = None
         if payload.custom_input is not None:
-            custom_output = _run_binary(binary_file, payload.custom_input)
+            custom_result = _run_binary(binary_file, payload.custom_input)
+            custom_output = str(custom_result.get("output", ""))
 
         case_results: list[JudgeCaseResult] = []
         run_results: list[JudgeRunResult] = []
