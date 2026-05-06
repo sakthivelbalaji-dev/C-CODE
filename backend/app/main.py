@@ -150,6 +150,8 @@ app.include_router(auth.router, prefix="/api")
 app.include_router(questions.router, prefix="/api")
 app.include_router(attempts.router, prefix="/api")
 app.include_router(judge.router, prefix="/api")
+# Backward-compatible judge path for older built frontend bundles.
+app.include_router(judge.router)
 
 if ASSETS_DIR.exists():
     app.mount("/assets", StaticFiles(directory=str(ASSETS_DIR)), name="assets")
