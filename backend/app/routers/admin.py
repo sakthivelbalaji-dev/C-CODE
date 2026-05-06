@@ -1,7 +1,11 @@
 import json
+from io import BytesIO
 from typing import List
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
 from sqlalchemy.orm import Session
 
 from ..database import get_db
@@ -87,3 +91,72 @@ def create_question_as_admin(
     db.commit()
     db.refresh(question)
     return _serialize_question_for_admin(question)
+
+
+@router.get("/questions/export/pdf")
+def export_questions_pdf(
+    admin_id: int | None = Query(None),
+    x_admin_id: str | None = Header(None),
+    db: Session = Depends(get_db),
+):
+    _require_admin(db, admin_id=admin_id, x_admin_id=x_admin_id)
+    questions = sorted(
+        db.query(Question).all(),
+        key=lambda row: (module_sort_rank(row.module), title_question_rank(row.title), row.id),
+    )
+
+    buffer = BytesIO()
+    pdf = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+    left_margin = 40
+    top_margin = 40
+    y = height - top_margin
+    line_height = 14
+
+    def new_page() -> None:
+        nonlocal y
+        pdf.showPage()
+        pdf.setFont("Helvetica", 11)
+        y = height - top_margin
+
+    def draw_line(text: str = "", *, bold: bool = False) -> None:
+        nonlocal y
+        if y <= top_margin:
+            new_page()
+        pdf.setFont("Helvetica-Bold" if bold else "Helvetica", 11)
+        safe = (text or "").replace("\t", "    ")
+        max_chars = 110
+        while len(safe) > max_chars:
+            pdf.drawString(left_margin, y, safe[:max_chars])
+            safe = safe[max_chars:]
+            y -= line_height
+            if y <= top_margin:
+                new_page()
+        pdf.drawString(left_margin, y, safe)
+        y -= line_height
+
+    draw_line("C Code Lab - Published Questions", bold=True)
+    draw_line(f"Total Questions: {len(questions)}")
+    draw_line()
+
+    for idx, row in enumerate(questions, start=1):
+        item = _serialize_question_for_admin(row)
+        draw_line(f"{idx}. {item['title']}", bold=True)
+        draw_line(f"Module: {item.get('module') or '-'}")
+        draw_line(f"Difficulty: {item.get('difficulty') or '-'}")
+        draw_line(f"Description: {item.get('description') or '-'}")
+        draw_line(f"Input Format: {item.get('input_format') or '-'}")
+        draw_line(f"Output Format: {item.get('output_format') or '-'}")
+        draw_line(f"Constraints: {item.get('constraints') or '-'}")
+        draw_line(f"Sample Input: {item.get('sample_input') or '-'}")
+        draw_line(f"Expected Output: {item.get('expected_output') or '-'}")
+        draw_line(f"Test Case Count: {item.get('test_case_count') or 0}")
+        draw_line()
+
+    pdf.save()
+    buffer.seek(0)
+    return StreamingResponse(
+        buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'attachment; filename="published-questions.pdf"'},
+    )
