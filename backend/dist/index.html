@@ -61,11 +61,156 @@
       (function () {
         var freezeTimer = false;
         var frozenNow = null;
+        var gateActive = false;
+        var gateFrozenNow = null;
+        /** Increments whenever the code editor mounts or the URL changes → new "question session" needs Start. */
+        var monacoGeneration = 0;
+        var armedGeneration = -1;
+        /** Used to avoid double “Start” bumps when SPA routing already incremented generation. */
+        var lastRoutingBumpAt = 0;
+        var overlayEl = null;
+
         var originalDateNow = Date.now.bind(Date);
+
+        function resetAcceptedFreezeForNavigation() {
+          freezeTimer = false;
+          frozenNow = null;
+        }
+
+        function isAuthLikePath() {
+          var path = (location.pathname || "").toLowerCase();
+          return (
+            path === "/login" ||
+            path === "/signup" ||
+            path === "/register"
+          );
+        }
+
+        function hasMonacoEditor() {
+          return !!document.querySelector(".monaco-editor");
+        }
+
+        function ensureOverlay() {
+          if (overlayEl) return overlayEl;
+          overlayEl = document.createElement("div");
+          overlayEl.id = "__ccodelab_question_start_overlay";
+          overlayEl.style.cssText = [
+            "position:fixed",
+            "inset:0",
+            "z-index:2147483646",
+            "display:flex",
+            "align-items:center",
+            "justify-content:center",
+            "background:rgba(17,24,39,0.45)",
+            "backdrop-filter:blur(4px)",
+            "font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif",
+          ].join(";");
+          var card = document.createElement("div");
+          card.style.cssText =
+            "background:#fff;padding:28px 32px;border-radius:14px;max-width:420px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,0.2);";
+          card.innerHTML =
+            '<p style="margin:0 0 12px;font-size:1.05rem;color:#374151;line-height:1.5;font-weight:600">Ready to solve this question?</p>' +
+            '<p style="margin:0 0 22px;font-size:0.9rem;color:#6b7280;line-height:1.45">' +
+            "The timer is paused until you begin. Click <strong>Start</strong> when you’re ready to continue the test.</p>";
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.textContent = "Start";
+          btn.style.cssText =
+            "background:#2563eb;color:#fff;border:none;padding:11px 32px;font-size:1rem;font-weight:600;border-radius:10px;cursor:pointer";
+          btn.onmouseenter = function () {
+            btn.style.background = "#1d4ed8";
+          };
+          btn.onmouseleave = function () {
+            btn.style.background = "#2563eb";
+          };
+          btn.onclick = function () {
+            releaseQuestionGate();
+          };
+          card.appendChild(btn);
+          overlayEl.appendChild(card);
+          return overlayEl;
+        }
+
+        function showStartOverlay() {
+          var layer = ensureOverlay();
+          if (!layer.parentNode) {
+            document.body.appendChild(layer);
+          }
+          layer.style.display = "flex";
+        }
+
+        function hideStartOverlay() {
+          if (!overlayEl) return;
+          overlayEl.style.display = "none";
+          try {
+            overlayEl.remove();
+          } catch (_e) {}
+        }
+
+        function armQuestionGate() {
+          gateActive = true;
+          gateFrozenNow = originalDateNow();
+          showStartOverlay();
+        }
+
+        function releaseQuestionGateQuiet() {
+          gateActive = false;
+          gateFrozenNow = null;
+          hideStartOverlay();
+        }
+
+        function releaseQuestionGate() {
+          releaseQuestionGateQuiet();
+          armedGeneration = monacoGeneration;
+        }
+
+        function maybeArmGateForCodingView() {
+          if (isAuthLikePath() || !hasMonacoEditor()) {
+            releaseQuestionGateQuiet();
+            armedGeneration = -1;
+            return;
+          }
+          if (monacoGeneration !== armedGeneration) {
+            armQuestionGate();
+          }
+        }
+
+        function bumpMonacoGeneration() {
+          monacoGeneration++;
+          queueMicrotask(maybeArmGateForCodingView);
+        }
+
+        function patchHistory() {
+          ["pushState", "replaceState"].forEach(function (methodName) {
+            var orig = history[methodName];
+            if (typeof orig !== "function") return;
+            history[methodName] = function () {
+              var prev = location.pathname + location.search + location.hash;
+              var ret = orig.apply(this, arguments);
+              var next = location.pathname + location.search + location.hash;
+              resetAcceptedFreezeForNavigation();
+              if (prev !== next) {
+                lastRoutingBumpAt = originalDateNow();
+                bumpMonacoGeneration();
+              } else queueMicrotask(maybeArmGateForCodingView);
+              return ret;
+            };
+          });
+          window.addEventListener("popstate", function () {
+            resetAcceptedFreezeForNavigation();
+            lastRoutingBumpAt = originalDateNow();
+            bumpMonacoGeneration();
+          });
+        }
+
+        patchHistory();
 
         Date.now = function () {
           if (freezeTimer && typeof frozenNow === "number") {
             return frozenNow;
+          }
+          if (gateActive && typeof gateFrozenNow === "number") {
+            return gateFrozenNow;
           }
           return originalDateNow();
         };
@@ -90,9 +235,59 @@
           }
         }
 
+        try {
+          var hadMonaco = false;
+          var mo = new MutationObserver(function () {
+            var has = hasMonacoEditor();
+            if (has && !hadMonaco && !isAuthLikePath()) {
+              hadMonaco = true;
+              bumpMonacoGeneration();
+            }
+            if (!has && hadMonaco) {
+              hadMonaco = false;
+              releaseQuestionGateQuiet();
+              armedGeneration = -1;
+            }
+          });
+          mo.observe(document.documentElement, { childList: true, subtree: true });
+        } catch (_e2) {}
+
+        window.addEventListener("hashchange", function () {
+          resetAcceptedFreezeForNavigation();
+          lastRoutingBumpAt = originalDateNow();
+          bumpMonacoGeneration();
+        });
+
+        function parseJudgeSubmitMode(init) {
+          try {
+            if (!init || !init.method || init.method.toUpperCase() !== "POST") return null;
+            if (!init.body || typeof init.body !== "string") return null;
+            var body = JSON.parse(init.body);
+            if (body && body.mode === "submit") return true;
+          } catch (_ignored) {}
+          return null;
+        }
+
+        function isJudgeAccepted(data) {
+          if (!data || typeof data !== "object") return false;
+          if (data.status === "Accepted") return true;
+          return (
+            typeof data.passed_case_count === "number" &&
+            typeof data.total_case_count === "number" &&
+            data.total_case_count > 0 &&
+            data.passed_case_count === data.total_case_count
+          );
+        }
+
+        queueMicrotask(maybeArmGateForCodingView);
+        window.addEventListener("load", function () {
+          maybeArmGateForCodingView();
+        });
+
         var originalFetch = window.fetch;
         window.fetch = function (input, init) {
           var normalizedInput = input;
+          var judgeSubmitHint = parseJudgeSubmitMode(init);
           var requestUrl = "";
           if (typeof input === "string") {
             requestUrl = input;
@@ -129,6 +324,12 @@
                 .json()
                 .then(function (data) {
                   markAccepted(data);
+                  if (judgeSubmitHint && isJudgeAccepted(data)) {
+                    window.setTimeout(function () {
+                      resetAcceptedFreezeForNavigation();
+                      if (originalDateNow() - lastRoutingBumpAt > 700) bumpMonacoGeneration();
+                    }, 450);
+                  }
                 })
                 .catch(function () {});
             } catch (e) {}
