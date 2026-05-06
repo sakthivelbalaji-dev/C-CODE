@@ -15,7 +15,7 @@
       #root span[title*="allocated for this question"] {
         display: none !important;
       }
-      /* Timer chip: forced visible regardless of SPA route / Monaco mount timing */
+      /* Fallback host (e.g. login): coding view mounts the pill in the workspace header next to C (C11). */
       #__ccodelab_timer_dock {
         position: fixed !important;
         top: 76px;
@@ -24,9 +24,14 @@
         max-width: calc(100vw - 36px);
         pointer-events: none;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        display: block !important;
         visibility: visible !important;
         opacity: 1 !important;
+      }
+      #__ccodelab_timer_dock:empty {
+        display: none !important;
+      }
+      #__ccodelab_timer_dock:not(:empty) {
+        display: block !important;
       }
       #__ccodelab_timer_dock > * {
         pointer-events: auto;
@@ -261,26 +266,55 @@
           pillHost.style.zIndex = "";
         }
 
-        function positionFloatingTimerPill() {
-          if (!pillHost || pillHost.parentNode !== document.body) return;
-          var monaco = document.querySelector(".monaco-editor");
-          if (!monaco) return;
-          var r = monaco.getBoundingClientRect();
-          var edge = Math.max(10, Math.round(window.innerWidth - r.right));
-          var topPx = Math.max(64, Math.round(r.top - 40));
-          pillHost.style.position = "fixed";
-          pillHost.style.left = "auto";
-          pillHost.style.right = edge + "px";
-          pillHost.style.top = topPx + "px";
-          pillHost.style.zIndex = "2147483000";
+        function findLanguageBadgeSpan() {
+          var spans = document.querySelectorAll("#root span");
+          for (var i = 0; i < spans.length; i++) {
+            var t = (spans[i].textContent || "").replace(/\s+/g, " ").trim();
+            if (/^C\s*\(C\d+\)$/i.test(t)) return spans[i];
+          }
+          return null;
         }
 
-        function bindFloatingPillReposition() {
+        function insertTimerPillBeforeLanguageRow(row, host) {
+          if (!row || !host) return;
+          var lang = findLanguageBadgeSpan();
+          if (lang && row.contains(lang)) {
+            var anchor = lang;
+            while (anchor && anchor.parentNode !== row) {
+              anchor = anchor.parentNode;
+            }
+            if (anchor && anchor.parentNode === row) {
+              row.insertBefore(host, anchor);
+              return;
+            }
+          }
+          if (row.firstChild) row.insertBefore(host, row.firstChild);
+          else row.appendChild(host);
+        }
+
+        function positionTimerLeftOfLanguageEl(el) {
+          if (!pillHost || !el) return;
+          var r = el.getBoundingClientRect();
+          var gap = 8;
+          var ph = pillHost.offsetHeight || 32;
+          pillHost.style.position = "fixed";
+          pillHost.style.left = "auto";
+          pillHost.style.right = Math.max(8, Math.round(window.innerWidth - r.left + gap)) + "px";
+          pillHost.style.top =
+            Math.max(8, Math.round(r.top + r.height / 2 - ph / 2)) + "px";
+          pillHost.style.zIndex = "2147483645";
+        }
+
+        function repositionLanguageAnchoredPillIfNeeded() {
+          if (!pillHost || pillHost.parentNode !== document.body) return;
+          var lang = findLanguageBadgeSpan();
+          if (lang) positionTimerLeftOfLanguageEl(lang);
+        }
+
+        function bindLanguageAnchoredReposition() {
           if (floatingPillRepositionBound) return;
           floatingPillRepositionBound = true;
-          var fn = function () {
-            positionFloatingTimerPill();
-          };
+          var fn = repositionLanguageAnchoredPillIfNeeded;
           window.addEventListener("resize", fn);
           window.addEventListener("scroll", fn, true);
         }
@@ -343,18 +377,39 @@
           }
         }
 
-        /** Never removes the DOM chip — keeps “Time left” visible no matter what. */
-        function ensureTimerChipInDock() {
+        /**
+         * Never removes the DOM chip — keeps “Time left” visible.
+         * Coding view: pill in workspace header beside C (C11). Auth / unknown: fallback dock (top-right).
+         */
+        function ensureTimerChipPlaced() {
           var dock = document.getElementById("__ccodelab_timer_dock");
-          if (!dock) return false;
           if (!pillHost) pillHost = createTimerPillEl();
-          clearPillFloatingLayout();
-          if (pillHost.parentNode !== dock) dock.appendChild(pillHost);
-          dock.style.display = "block";
-          dock.style.visibility = "visible";
-          dock.style.opacity = "1";
           pillHost.style.display = "inline-flex";
           pillHost.style.visibility = "visible";
+
+          if (isAuthLikePath()) {
+            clearPillFloatingLayout();
+            if (dock && pillHost.parentNode !== dock) dock.appendChild(pillHost);
+            return true;
+          }
+
+          var row = editorHeaderActionsRow();
+          if (row) {
+            clearPillFloatingLayout();
+            insertTimerPillBeforeLanguageRow(row, pillHost);
+            return true;
+          }
+
+          var lang = findLanguageBadgeSpan();
+          if (lang && hasMonacoEditor()) {
+            if (pillHost.parentNode !== document.body) document.body.appendChild(pillHost);
+            bindLanguageAnchoredReposition();
+            positionTimerLeftOfLanguageEl(lang);
+            return true;
+          }
+
+          clearPillFloatingLayout();
+          if (dock && pillHost.parentNode !== dock) dock.appendChild(pillHost);
           return true;
         }
 
@@ -367,7 +422,7 @@
         /** When leaving Monaco / coding view — chip stays; only countdown state resets. */
         function resetTimerChipIdleUi() {
           clearCountdownTickOnly();
-          ensureTimerChipInDock();
+          ensureTimerChipPlaced();
           var val = document.getElementById("__ccodelab_timer_value");
           if (!pillHost || !val) return;
           if (isAuthLikePath()) {
@@ -428,7 +483,7 @@
         }
 
         function mountTimerPillBeforeNative() {
-          ensureTimerChipInDock();
+          ensureTimerChipPlaced();
           var row = editorHeaderActionsRow();
           if (row && rowIsStaffUnlimited(row)) {
             resetTimerChipIdleUi();
@@ -445,7 +500,7 @@
           stopUiTimerTick();
           pillStarted = false;
           pillEndTs = null;
-          ensureTimerChipInDock();
+          ensureTimerChipPlaced();
           if (!pillHost) return;
           pillHost.setAttribute("title", "Press Start to begin the countdown for this question.");
           var val = document.getElementById("__ccodelab_timer_value");
@@ -477,7 +532,7 @@
         }
 
         function startUiTimerAfterGateRelease() {
-          ensureTimerChipInDock();
+          ensureTimerChipPlaced();
           if (!hasMonacoEditor() || isAuthLikePath()) {
             resetTimerChipIdleUi();
             return;
@@ -741,17 +796,17 @@
         }
 
         queueMicrotask(function () {
-          ensureTimerChipInDock();
+          ensureTimerChipPlaced();
           resetTimerChipIdleUi();
           maybeArmGateForCodingView();
         });
         window.addEventListener("load", function () {
-          ensureTimerChipInDock();
+          ensureTimerChipPlaced();
           resetTimerChipIdleUi();
           maybeArmGateForCodingView();
         });
         window.setInterval(function () {
-          ensureTimerChipInDock();
+          ensureTimerChipPlaced();
           if (!pillStarted || gateActive || window.__CCODELAB_QUESTION_GATE_ACTIVE) {
             resetTimerChipIdleUi();
           }
