@@ -94,6 +94,9 @@
           if (overlayEl) return overlayEl;
           overlayEl = document.createElement("div");
           overlayEl.id = "__ccodelab_question_start_overlay";
+          overlayEl.setAttribute("role", "dialog");
+          overlayEl.setAttribute("aria-modal", "true");
+          overlayEl.setAttribute("aria-labelledby", "__ccodelab_start_title");
           overlayEl.style.cssText = [
             "position:fixed",
             "inset:0",
@@ -101,27 +104,49 @@
             "display:flex",
             "align-items:center",
             "justify-content:center",
-            "background:rgba(17,24,39,0.45)",
-            "backdrop-filter:blur(4px)",
+            "background:rgba(15,23,42,0.72)",
+            "backdrop-filter:blur(8px)",
+            "-webkit-backdrop-filter:blur(8px)",
             "font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif",
           ].join(";");
           var card = document.createElement("div");
-          card.style.cssText =
-            "background:#fff;padding:28px 32px;border-radius:14px;max-width:420px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,0.2);";
+          card.style.cssText = [
+            "background:linear-gradient(165deg,#1e293b 0%,#0f172a 100%)",
+            "padding:28px 32px",
+            "border-radius:16px",
+            "max-width:440px",
+            "text-align:center",
+            "box-shadow:0 24px 64px rgba(0,0,0,0.55),0 0 0 1px rgba(59,130,246,0.22)",
+            "border:1px solid rgba(51,65,85,0.9)",
+          ].join(";");
           card.innerHTML =
-            '<p style="margin:0 0 12px;font-size:1.05rem;color:#374151;line-height:1.5;font-weight:600">Ready to solve this question?</p>' +
-            '<p style="margin:0 0 22px;font-size:0.9rem;color:#6b7280;line-height:1.45">' +
-            "The timer is paused until you begin. Click <strong>Start</strong> when you’re ready to continue the test.</p>";
+            '<p id="__ccodelab_start_title" style="margin:0 0 10px;font-size:1.15rem;color:#f1f5f9;line-height:1.45;font-weight:700;letter-spacing:-0.02em">Ready to solve this question?</p>' +
+            '<p style="margin:0 0 8px;font-size:0.92rem;color:#94a3b8;line-height:1.55">' +
+            "The countdown timer stays <span style=\"color:#38bdf8;font-weight:600\">paused</span> until you begin.</p>" +
+            '<p style="margin:0 0 22px;font-size:0.88rem;color:#64748b;line-height:1.5">' +
+            "Press <strong style=\"color:#e2e8f0\">Start</strong> when you are ready to continue the test.</p>";
           var btn = document.createElement("button");
           btn.type = "button";
           btn.textContent = "Start";
-          btn.style.cssText =
-            "background:#2563eb;color:#fff;border:none;padding:11px 32px;font-size:1rem;font-weight:600;border-radius:10px;cursor:pointer";
+          btn.style.cssText = [
+            "background:linear-gradient(180deg,#3b82f6 0%,#2563eb 100%)",
+            "color:#f8fafc",
+            "border:none",
+            "padding:12px 40px",
+            "font-size:1rem",
+            "font-weight:700",
+            "border-radius:12px",
+            "cursor:pointer",
+            "box-shadow:0 4px 14px rgba(37,99,235,0.45)",
+            "letter-spacing:0.02em",
+          ].join(";");
           btn.onmouseenter = function () {
-            btn.style.background = "#1d4ed8";
+            btn.style.background = "linear-gradient(180deg,#60a5fa 0%,#3b82f6 100%)";
+            btn.style.boxShadow = "0 6px 20px rgba(37,99,235,0.55)";
           };
           btn.onmouseleave = function () {
-            btn.style.background = "#2563eb";
+            btn.style.background = "linear-gradient(180deg,#3b82f6 0%,#2563eb 100%)";
+            btn.style.boxShadow = "0 4px 14px rgba(37,99,235,0.45)";
           };
           btn.onclick = function () {
             releaseQuestionGate();
