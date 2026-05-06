@@ -136,15 +136,36 @@
 
         var originalFetch = window.fetch;
         window.fetch = function (input, init) {
+          var normalizedInput = input;
           var requestUrl = "";
           if (typeof input === "string") {
             requestUrl = input;
           } else if (input && input.url) {
             requestUrl = input.url;
           }
-          return originalFetch.call(this, input, init).then(function (response) {
+          var isJudgePath =
+            /(^|\/)api\/judge\/c(\?|$)/.test(requestUrl) || /(^|\/)judge\/c(\?|$)/.test(requestUrl);
+          var isAbsolute =
+            /^https?:\/\//i.test(requestUrl) || requestUrl.startsWith("/") || requestUrl.startsWith("//");
+          if (isJudgePath && !isAbsolute && typeof input === "string") {
+            if (/api\/judge\/c(\?|$)/.test(requestUrl)) {
+              normalizedInput = "/" + requestUrl.replace(/^\.?\/*/, "");
+            } else {
+              normalizedInput = "/judge/c";
+              if (requestUrl.indexOf("?") !== -1) {
+                normalizedInput += requestUrl.slice(requestUrl.indexOf("?"));
+              }
+            }
+            requestUrl = normalizedInput;
+          }
+          return originalFetch.call(this, normalizedInput, init).then(function (response) {
             try {
               if (!/\/api\/judge\/c(\?|$)/.test(requestUrl)) {
+                if (!/\/judge\/c(\?|$)/.test(requestUrl)) {
+                  return response;
+                }
+              }
+              if (!(response && response.ok)) {
                 return response;
               }
               response
