@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Executive Summary — C Code Lab</title>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+  </script>
+  <style>
+    :root { font-family: "Segoe UI", system-ui, sans-serif; color: #1a1a1a; line-height: 1.5; }
+    body { max-width: 900px; margin: 2rem auto; padding: 0 1.25rem 4rem; }
+    h1 { font-size: 1.75rem; border-bottom: 2px solid #2563eb; padding-bottom: 0.35rem; }
+    h2 { font-size: 1.2rem; margin-top: 2rem; color: #1e3a8a; }
+    p { margin: 0.75rem 0; }
+    ul { margin: 0.5rem 0 0.5rem 1.25rem; }
+    .box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem 1.25rem; margin: 1rem 0; }
+    table.mapping { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin: 1rem 0; }
+    table.mapping th, table.mapping td { border: 1px solid #cbd5e1; padding: 0.4rem 0.5rem; text-align: left; vertical-align: top; }
+    table.mapping thead { background: #1e40af; color: #fff; }
+    table.mapping tbody tr:nth-child(even) { background: #f1f5f9; }
+    .muted { color: #64748b; font-size: 0.92rem; }
+    .samples { white-space: pre-wrap; font-size: 0.88rem; background: #0f172a; color: #e2e8f0; padding: 1rem; border-radius: 8px; overflow-x: auto; }
+    @media print {
+      body { max-width: 100%; }
+      h2 { page-break-after: avoid; }
+      table.mapping { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Executive Summary</h1>
+
+  <p>
+    We aligned <strong>C Code Lab</strong> with the syllabus in <strong>C Foundation (Updated)</strong>
+    (Phases&nbsp;1–5: Foundation, Logic &amp; Flow Control, Functions, Data Collections, Problem Practice).
+    The live question bank is generated from editable seeds in <code>backend/app/topic_question_seeds.py</code>:
+    <strong>110 catalog questions</strong> (5 per syllabus topic × 22 topics).
+    Catalog numbers <strong>Q1…Q110</strong> follow global syllabus order; public/hidden judge cases distinguish
+    sample vs graded tests in the LMS.
+  </p>
+
+  <p>
+    <strong>Difficulty mix</strong> (automatic rules in seeds): approximately <strong>57% easy</strong> and <strong>43% medium</strong> (no items classified hard in current seed rules).
+    For exam-style marking we map: easy&nbsp;=&nbsp;2, medium&nbsp;=&nbsp;4, hard&nbsp;=&nbsp;6 marks per question
+    (illustrative; tune to your institute).
+  </p>
+
+  <h2>Our output includes</h2>
+  <ul>
+    <li><strong>Question mapping:</strong> Each syllabus topic row has exactly five drills; 18 foundational templates appear once bank-wide,
+    46 templates appear twice (practice + reinforcement), covering I/O, control flow, functions, arrays, strings, matrices, and mixed practice.</li>
+    <li><strong>Exam / handout format:</strong> Matches the published-questions PDF pipeline: numbered titles, phase/module, difficulty,
+    problem description, input/output format, constraints, sample I/O, and full test-case lists for staff PDF export.</li>
+    <li><strong>Quality checks:</strong> Pedagogical ordering of repeats (not alphabetical), duplicate-stem tooling for admins, sequential Q labels,
+    hidden-test policy for submits, and optional DB dedupe for legacy banks.</li>
+  </ul>
+
+  <div class="box">
+    <p class="muted" style="margin-top:0">Process overview (mirror of classic exam-design flowcharts).</p>
+    <pre class="mermaid">
+flowchart TD
+  A[Syllabus — C Foundation PDF] --> B[Map 22 topics × 5 slots]
+  B --> C[Assign templates &amp; duplicates policy]
+  C --> D[Seed DB / API + Monaco judge]
+  D --> E[Difficulty &amp; hints layer]
+  E --> F[Admin PDF export + LMS]
+  F --> G[Iterate from staff feedback]
+    </pre>
+  </div>
+
+  <div class="box">
+    <p class="muted" style="margin-top:0">Indicative production timeline (adjust dates).</p>
+    <pre class="mermaid">
+gantt
+    title C Code Lab — syllabus to bank
+    dateFormat  YYYY-MM-DD
+    section Preparation
+    Syllabus &amp; seeds           :done, a1, 2026-05-01, 3d
+    Judge &amp; hidden-case policy :done, a2, 2026-05-03, 2d
+    section Build
+    Topic seed authoring       :active, a3, 2026-05-06, 4d
+    PDF + dedupe tooling       :a4, 2026-05-10, 3d
+    section Delivery
+    Pilot class &amp; tune marks   :a5, 2026-05-14, 5d
+    </pre>
+  </div>
+
+  <h2>Table — Questions &amp; syllabus mapping</h2>
+  <p class="muted">Auto-generated from <code>_TOPIC_SEEDS</code>. Column <em>Drill</em> is the display title of the seeded template.</p>
+  <table class="mapping">
+    <thead>
+      <tr><th>Q&nbsp;No</th><th>Syllabus topic</th><th>Drill</th><th>Type</th><th>Marks</th><th>Difficulty</th></tr>
+    </thead>
+    <tbody>
+<tr><td>1</td><td>Phase 1 — Foundation — Introduction to C</td><td>Print Hello World</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>2</td><td>Phase 1 — Foundation — Introduction to C</td><td>Simple Interest</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>3</td><td>Phase 1 — Foundation — Introduction to C</td><td>Is Even Function Loop</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>4</td><td>Phase 1 — Foundation — Introduction to C</td><td>Count Vowels</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>5</td><td>Phase 1 — Foundation — Introduction to C</td><td>Linear Search Array</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>6</td><td>Phase 1 — Foundation — Structure of a C Program</td><td>Read Float Decimal Places</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>7</td><td>Phase 1 — Foundation — Structure of a C Program</td><td>Array Reverse Print</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>8</td><td>Phase 1 — Foundation — Structure of a C Program</td><td>Find Sum Of Array</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>9</td><td>Phase 1 — Foundation — Structure of a C Program</td><td>Largest Element</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>10</td><td>Phase 1 — Foundation — Structure of a C Program</td><td>Max Min Average Array</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>11</td><td>Phase 1 — Foundation — Keywords and Identifiers</td><td>Check Even/Odd</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>12</td><td>Phase 1 — Foundation — Keywords and Identifiers</td><td>Gcd Euclidean</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>13</td><td>Phase 1 — Foundation — Keywords and Identifiers</td><td>Lcm Using Gcd</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>14</td><td>Phase 1 — Foundation — Keywords and Identifiers</td><td>Factorial Of Number</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>15</td><td>Phase 1 — Foundation — Keywords and Identifiers</td><td>Factorial Using Function</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>16</td><td>Phase 1 — Foundation — Variables</td><td>Swap Two Numbers</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>17</td><td>Phase 1 — Foundation — Variables</td><td>Pointer To Pointer</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>18</td><td>Phase 1 — Foundation — Variables</td><td>Swap Using Pointers</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>19</td><td>Phase 1 — Foundation — Variables</td><td>Fibonacci Series</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>20</td><td>Phase 1 — Foundation — Variables</td><td>Sum Using Recursion</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>21</td><td>Phase 1 — Foundation — Data Types</td><td>Read Character ASCII</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>22</td><td>Phase 1 — Foundation — Data Types</td><td>Armstrong Number Check</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>23</td><td>Phase 1 — Foundation — Data Types</td><td>Palindrome Number</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>24</td><td>Phase 1 — Foundation — Data Types</td><td>Floyd Triangle Pattern</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>25</td><td>Phase 1 — Foundation — Data Types</td><td>Pascal Triangle Rows</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>26</td><td>Phase 1 — Foundation — Constants</td><td>Add Two Numbers</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>27</td><td>Phase 1 — Foundation — Constants</td><td>Equilateral Star Pattern</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>28</td><td>Phase 1 — Foundation — Constants</td><td>Bubble Sort Array</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>29</td><td>Phase 1 — Foundation — Constants</td><td>Second Largest Array</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>30</td><td>Phase 1 — Foundation — Constants</td><td>Access Array Using Pointer</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>31</td><td>Phase 1 — Foundation — Header Files</td><td>Print Data Type Sizes Lab</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>32</td><td>Phase 1 — Foundation — Header Files</td><td>Matrix Print 3X3</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>33</td><td>Phase 1 — Foundation — Header Files</td><td>Matrix Addition</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>34</td><td>Phase 1 — Foundation — Header Files</td><td>Matrix Transpose</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>35</td><td>Phase 1 — Foundation — Header Files</td><td>Matrix Row Column Sums</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>36</td><td>Phase 1 — Foundation — Input and Output (printf, scanf)</td><td>Print Name And City</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>37</td><td>Phase 1 — Foundation — Input and Output (printf, scanf)</td><td>Concatenate Without Strcat</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>38</td><td>Phase 1 — Foundation — Input and Output (printf, scanf)</td><td>String Length Manual</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>39</td><td>Phase 1 — Foundation — Input and Output (printf, scanf)</td><td>Reverse A String</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>40</td><td>Phase 1 — Foundation — Input and Output (printf, scanf)</td><td>Check Palindrome</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>41</td><td>Phase 1 — Foundation — Compilation process</td><td>Calculator Switch Menu</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>42</td><td>Phase 1 — Foundation — Compilation process</td><td>Break On Negative Sum</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>43</td><td>Phase 1 — Foundation — Compilation process</td><td>Employee Details</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>44</td><td>Phase 1 — Foundation — Compilation process</td><td>Product Inventory Record</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>45</td><td>Phase 1 — Foundation — Compilation process</td><td>Print Input Text</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>46</td><td>Phase 2 — Logic Building &amp; Flow Control — Arithmetic, Relational, Logical, Assignment</td><td>Find Largest Of 3 Numbers</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>47</td><td>Phase 2 — Logic Building &amp; Flow Control — Arithmetic, Relational, Logical, Assignment</td><td>Prime Check</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>48</td><td>Phase 2 — Logic Building &amp; Flow Control — Arithmetic, Relational, Logical, Assignment</td><td>Print Primes In Range</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>49</td><td>Phase 2 — Logic Building &amp; Flow Control — Arithmetic, Relational, Logical, Assignment</td><td>Student Record System</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>50</td><td>Phase 2 — Logic Building &amp; Flow Control — Arithmetic, Relational, Logical, Assignment</td><td>Strong Number Check</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>51</td><td>Phase 2 — Logic Building &amp; Flow Control — Increment and Decrement operators</td><td>Read Until Zero Sum</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>52</td><td>Phase 2 — Logic Building &amp; Flow Control — Increment and Decrement operators</td><td>Symmetric Matrix Check</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>53</td><td>Phase 2 — Logic Building &amp; Flow Control — Increment and Decrement operators</td><td>Count Above Average</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>54</td><td>Phase 2 — Logic Building &amp; Flow Control — Increment and Decrement operators</td><td>Count Vowels Consonants Spaces</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>55</td><td>Phase 2 — Logic Building &amp; Flow Control — Increment and Decrement operators</td><td>Echo Input Line</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>56</td><td>Phase 2 — Logic Building &amp; Flow Control — Conditional Statements (if, else, switch)</td><td>Grade Calculator</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>57</td><td>Phase 2 — Logic Building &amp; Flow Control — Conditional Statements (if, else, switch)</td><td>Write Data To File</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>58</td><td>Phase 2 — Logic Building &amp; Flow Control — Conditional Statements (if, else, switch)</td><td>Simple Interest</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>59</td><td>Phase 2 — Logic Building &amp; Flow Control — Conditional Statements (if, else, switch)</td><td>Is Even Function Loop</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>60</td><td>Phase 2 — Logic Building &amp; Flow Control — Conditional Statements (if, else, switch)</td><td>Count Vowels</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>61</td><td>Phase 2 — Logic Building &amp; Flow Control — Loops (for, while, do-while)</td><td>Print Multiplication Table</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>62</td><td>Phase 2 — Logic Building &amp; Flow Control — Loops (for, while, do-while)</td><td>Linear Search Array</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>63</td><td>Phase 2 — Logic Building &amp; Flow Control — Loops (for, while, do-while)</td><td>Array Reverse Print</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>64</td><td>Phase 2 — Logic Building &amp; Flow Control — Loops (for, while, do-while)</td><td>Find Sum Of Array</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>65</td><td>Phase 2 — Logic Building &amp; Flow Control — Loops (for, while, do-while)</td><td>Largest Element</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>66</td><td>Phase 2 — Logic Building &amp; Flow Control — Jump statements (break, continue, goto)</td><td>Leap Year</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>67</td><td>Phase 2 — Logic Building &amp; Flow Control — Jump statements (break, continue, goto)</td><td>Max Min Average Array</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>68</td><td>Phase 2 — Logic Building &amp; Flow Control — Jump statements (break, continue, goto)</td><td>Gcd Euclidean</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>69</td><td>Phase 2 — Logic Building &amp; Flow Control — Jump statements (break, continue, goto)</td><td>Lcm Using Gcd</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>70</td><td>Phase 2 — Logic Building &amp; Flow Control — Jump statements (break, continue, goto)</td><td>Factorial Of Number</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>71</td><td>Phase 3 — Functions — Function declaration, definition, and call</td><td>Read Name And Age Greeting</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>72</td><td>Phase 3 — Functions — Function declaration, definition, and call</td><td>Factorial Using Function</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>73</td><td>Phase 3 — Functions — Function declaration, definition, and call</td><td>Pointer To Pointer</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>74</td><td>Phase 3 — Functions — Function declaration, definition, and call</td><td>Swap Using Pointers</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>75</td><td>Phase 3 — Functions — Function declaration, definition, and call</td><td>Fibonacci Series</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>76</td><td>Phase 3 — Functions — Call by value and call by reference</td><td>Student Record Variables</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>77</td><td>Phase 3 — Functions — Call by value and call by reference</td><td>Sum Using Recursion</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>78</td><td>Phase 3 — Functions — Call by value and call by reference</td><td>Armstrong Number Check</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>79</td><td>Phase 3 — Functions — Call by value and call by reference</td><td>Palindrome Number</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>80</td><td>Phase 3 — Functions — Call by value and call by reference</td><td>Floyd Triangle Pattern</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>81</td><td>Phase 3 — Functions — Using functions for primes, powers, factorial, gcd, lcm</td><td>Day Of Week Switch</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>82</td><td>Phase 3 — Functions — Using functions for primes, powers, factorial, gcd, lcm</td><td>Pascal Triangle Rows</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>83</td><td>Phase 3 — Functions — Using functions for primes, powers, factorial, gcd, lcm</td><td>Equilateral Star Pattern</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>84</td><td>Phase 3 — Functions — Using functions for primes, powers, factorial, gcd, lcm</td><td>Bubble Sort Array</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>85</td><td>Phase 3 — Functions — Using functions for primes, powers, factorial, gcd, lcm</td><td>Second Largest Array</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>86</td><td>Phase 4 — Data Collections — One-dimensional arrays</td><td>Print Simple Box Border</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>87</td><td>Phase 4 — Data Collections — One-dimensional arrays</td><td>Access Array Using Pointer</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>88</td><td>Phase 4 — Data Collections — One-dimensional arrays</td><td>Matrix Print 3X3</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>89</td><td>Phase 4 — Data Collections — One-dimensional arrays</td><td>Matrix Addition</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>90</td><td>Phase 4 — Data Collections — One-dimensional arrays</td><td>Matrix Transpose</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>91</td><td>Phase 4 — Data Collections — Two-dimensional arrays (matrices)</td><td>Matrix Row Column Sums</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>92</td><td>Phase 4 — Data Collections — Two-dimensional arrays (matrices)</td><td>Concatenate Without Strcat</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>93</td><td>Phase 4 — Data Collections — Two-dimensional arrays (matrices)</td><td>String Length Manual</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>94</td><td>Phase 4 — Data Collections — Two-dimensional arrays (matrices)</td><td>Reverse A String</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>95</td><td>Phase 4 — Data Collections — Two-dimensional arrays (matrices)</td><td>Check Palindrome</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>96</td><td>Phase 4 — Data Collections — Strings basics and manipulation</td><td>Pattern Printing</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>97</td><td>Phase 4 — Data Collections — Strings basics and manipulation</td><td>Calculator Switch Menu</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>98</td><td>Phase 4 — Data Collections — Strings basics and manipulation</td><td>Break On Negative Sum</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>99</td><td>Phase 4 — Data Collections — Strings basics and manipulation</td><td>Employee Details</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>100</td><td>Phase 4 — Data Collections — Strings basics and manipulation</td><td>Product Inventory Record</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>101</td><td>Phase 5 — Problem Practice — Mixed array, matrix, string, and number-theory drills</td><td>Print Input Text</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>102</td><td>Phase 5 — Problem Practice — Mixed array, matrix, string, and number-theory drills</td><td>Prime Check</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>103</td><td>Phase 5 — Problem Practice — Mixed array, matrix, string, and number-theory drills</td><td>Print Primes In Range</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>104</td><td>Phase 5 — Problem Practice — Mixed array, matrix, string, and number-theory drills</td><td>Student Record System</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>105</td><td>Phase 5 — Problem Practice — Mixed array, matrix, string, and number-theory drills</td><td>Strong Number Check</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>106</td><td>Phase 5 — Problem Practice — Patterns, sorts, palindromes, gcd/lcm bundles</td><td>Symmetric Matrix Check</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>107</td><td>Phase 5 — Problem Practice — Patterns, sorts, palindromes, gcd/lcm bundles</td><td>Count Above Average</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>108</td><td>Phase 5 — Problem Practice — Patterns, sorts, palindromes, gcd/lcm bundles</td><td>Count Vowels Consonants Spaces</td><td>Programming task</td><td>2</td><td>easy</td></tr>
+<tr><td>109</td><td>Phase 5 — Problem Practice — Patterns, sorts, palindromes, gcd/lcm bundles</td><td>Echo Input Line</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+<tr><td>110</td><td>Phase 5 — Problem Practice — Patterns, sorts, palindromes, gcd/lcm bundles</td><td>Write Data To File</td><td>Programming task</td><td>4</td><td>medium</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Representative samples (abbreviated)</h2>
+  <div class="samples">Q&nbsp;example — Leap year (Phase&nbsp;2): stdin year → print Leap or Not (includes 2100 / 2000 checks in seeds).
+
+Q&nbsp;example — Armstrong check (repeat pool): positive integer → Yes/No by digit-power sum.
+
+Q&nbsp;example — Bubble sort drill: sort N integers ascending; wording allows bubble swaps or instructor-approved alternate.
+
+Full prompts, constraints, samples, and all test vectors live in the database / PDF export — same layout as your reference bundle.</div>
+
+  <h2>Deliverables</h2>
+  <ul>
+    <li>In-app syllabus progression, Run/Submit judging, attempts history.</li>
+    <li>Admin: bulk PDF (<code>/api/admin/questions/export/pdf</code>), optional unique-stem PDF, duplicate-row cleanup.</li>
+    <li>This document: regenerate anytime with<br/>
+      <code>python backend/scripts/generate_executive_summary_html.py</code></li>
+  </ul>
+
+  <h2>References (typical C exercise sources)</h2>
+  <ul>
+    <li>w3resource — arrays, recursion, sorting: <a href="https://www.w3resource.com/c-programming-exercises/">w3resource C exercises</a></li>
+    <li>Programiz — Armstrong, Fibonacci, patterns: <a href="https://www.programiz.com/c-programming/examples">Programiz examples</a></li>
+  </ul>
+
+  <p class="muted" style="margin-top:2rem;">Generated file: Executive-Summary-C-Code-Lab.html — Print to PDF from your browser if you need a PDF twin of the Word-style executive summary.</p>
+</body>
+</html>
