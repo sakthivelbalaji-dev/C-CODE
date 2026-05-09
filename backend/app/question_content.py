@@ -406,7 +406,7 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
                 {"input": "2\n12\n18\n20\n0", "output": "52"},
             ],
             tests=[
-                {"input": "1\n7\n9\n17\n0", "output": "17"},
+                {"input": "1\n7\n9\n17\n0", "output": "34"},
                 {"input": "3\n0", "output": "3"},
                 {"input": "10\n20\n5\n0", "output": "35"},
             ],
@@ -545,8 +545,9 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
             constraints="n >= 2; values fit 32-bit int.",
             input_format="First line n, second line n integers.",
             output_format=(
-                "Print the largest value that is strictly less than the global maximum "
-                "(ignore duplicate copies of the maximum)."
+                "Let M be the maximum element. Print the largest value strictly less than M "
+                "if such a value exists (duplicates of M are ignored). "
+                "If every element equals M, print M (there is no strictly smaller value)."
             ),
             examples=[{"input": "3\n5 5 3", "output": "3"}, {"input": "5\n3 9 9 1 4", "output": "4"}],
             tests=[

@@ -119,26 +119,37 @@ def export_questions_pdf(
         pdf.setFont("Helvetica", 11)
         y = height - top_margin
 
-    def draw_line(text: str = "", *, bold: bool = False, indent: int = 0) -> None:
+    def draw_line(
+        text: str = "",
+        *,
+        bold: bool = False,
+        indent: int = 0,
+        monospace: bool = False,
+    ) -> None:
         nonlocal y
         safe_full = (text or "").replace("\t", "    ")
         for segment in safe_full.split("\n"):
-            _draw_wrapped_segment(segment, bold=bold, indent=indent)
+            _draw_wrapped_segment(segment, bold=bold, indent=indent, monospace=monospace)
 
-    def _draw_wrapped_segment(safe: str, *, bold: bool, indent: int) -> None:
+    def _draw_wrapped_segment(
+        safe: str, *, bold: bool, indent: int, monospace: bool = False
+    ) -> None:
         nonlocal y
         margin = left_margin + indent
-        max_chars = max(36, 110 - indent // 5)
+        font_size = 10 if monospace else 11
+        max_chars = max(36, (88 if monospace else 110) - indent // 5)
+        body_font = "Courier" if monospace else "Helvetica"
+        head_font = "Courier-Bold" if monospace else "Helvetica-Bold"
         while len(safe) > max_chars:
             if y <= top_margin:
                 new_page()
-            pdf.setFont("Helvetica-Bold" if bold else "Helvetica", 11)
+            pdf.setFont(head_font if bold else body_font, font_size)
             pdf.drawString(margin, y, safe[:max_chars])
             safe = safe[max_chars:]
             y -= line_height
         if y <= top_margin:
             new_page()
-        pdf.setFont("Helvetica-Bold" if bold else "Helvetica", 11)
+        pdf.setFont(head_font if bold else body_font, font_size)
         pdf.drawString(margin, y, safe)
         y -= line_height
 
@@ -155,8 +166,18 @@ def export_questions_pdf(
         draw_line(f"Input Format: {item.get('input_format') or '-'}")
         draw_line(f"Output Format: {item.get('output_format') or '-'}")
         draw_line(f"Constraints: {item.get('constraints') or '-'}")
-        draw_line(f"Sample Input: {item.get('sample_input') or '-'}")
-        draw_line(f"Expected Output: {item.get('expected_output') or '-'}")
+        _si = item.get("sample_input")
+        _eo = item.get("expected_output")
+        if _si is not None and "\n" in str(_si):
+            draw_line("Sample Input:", bold=True)
+            draw_line(_si, monospace=True)
+        else:
+            draw_line(f"Sample Input: {_si if _si is not None else '-'}")
+        if _eo is not None and "\n" in str(_eo):
+            draw_line("Expected Output (sample):", bold=True)
+            draw_line(_eo, monospace=True)
+        else:
+            draw_line(f"Expected Output: {_eo if _eo is not None else '-'}")
         tc_list = item.get("test_cases") or []
         draw_line(f"Judge test case count: {item.get('test_case_count') or len(tc_list)}")
         if isinstance(tc_list, list) and tc_list:
@@ -170,9 +191,10 @@ def export_questions_pdf(
                 tin = str(case.get("input", "") or "")
                 tout = str(case.get("output", "") or "")
                 draw_line("Input:", bold=True, indent=20)
-                draw_line(tin if tin.strip() else "(empty)", indent=24)
+                # Do not .strip() multiline I/O — leading spaces matter for patterns; monospace preserves alignment.
+                draw_line("(empty)" if tin == "" else tin, indent=24, monospace=True)
                 draw_line("Expected output:", bold=True, indent=20)
-                draw_line(tout if tout.strip() else "(empty)", indent=24)
+                draw_line("(empty)" if tout == "" else tout, indent=24, monospace=True)
         draw_line()
 
     pdf.save()

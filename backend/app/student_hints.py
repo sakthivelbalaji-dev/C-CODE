@@ -261,9 +261,9 @@ STUDENT_METADATA: dict[str, dict[str, str]] = {
         "functions": "`/` integer division nuances; spaced triple print.",
     },
     "second largest array": {
-        "constraints": "At least length two ints general distinct semantics allowed duplicates.",
-        "algorithm": "First find max peel second maximal strictly less-than-max semantics per problem.",
-        "functions": "`if` interplay two-pass scan recommended.",
+        "constraints": "At least length two ints; duplicates allowed.",
+        "algorithm": "Find global max M; then scan for the largest value < M. If none exists (all equal), print M.",
+        "functions": "Two-pass or sort; `%d`; condition `< max`.",
     },
     "linear search array": {
         "constraints": "Array listing plus target finder.",
