@@ -329,8 +329,9 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
             sample_input="",
             expected_output="4 4 8 1",
             constraints=(
-                "Assume (for autograder portability) int=4, float=4, double=8, unsigned char=1 bytes "
-                "as in the lab handout."
+                "Use C sizeof for int, float, double, and unsigned char. "
+                "The autograder (typical 64-bit GCC/Linux) expects exactly 4 4 8 1 — match that output "
+                "even if your local machine reports different sizes."
             ),
             input_format="No input.",
             output_format=(
@@ -418,11 +419,22 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
         "prime check": _make_template(
             sample_input="7",
             expected_output="Prime",
-            constraints="2 <= n <= 10^6",
+            constraints=(
+                "Any integer n in [-10^6, 10^6]. Print Prime iff n is a prime number "
+                "(integer ≥ 2 with no divisors other than 1 and itself). "
+                "For n < 2 (including 0, 1) and for negative n, print Not."
+            ),
             input_format="One integer n.",
-            output_format='Print Prime or Not',
-            examples=[{"input": "8", "output": "Not"}, {"input": "7", "output": "Prime"}],
-            tests=[{"input": "2", "output": "Prime"}, {"input": "9", "output": "Not"}, {"input": "17", "output": "Prime"}],
+            output_format='Print exactly Prime or Not (capital P / capital N as shown).',
+            examples=[{"input": "8", "output": "Not"}, {"input": "7", "output": "Prime"}, {"input": "1", "output": "Not"}],
+            tests=[
+                {"input": "2", "output": "Prime"},
+                {"input": "9", "output": "Not"},
+                {"input": "17", "output": "Prime"},
+                {"input": "1", "output": "Not"},
+                {"input": "0", "output": "Not"},
+                {"input": "-11", "output": "Not"},
+            ],
         ),
         "leap year": _make_template(
             sample_input="2024",
@@ -456,9 +468,20 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
             expected_output="Yes",
             constraints="1 <= n <= 10^6",
             input_format="One integer n.",
-            output_format="Print Yes or No if n is an Armstrong number.",
-            examples=[{"input": "9474", "output": "Yes"}, {"input": "123", "output": "No"}],
-            tests=[{"input": "1", "output": "Yes"}, {"input": "370", "output": "Yes"}, {"input": "200", "output": "No"}],
+            output_format=(
+                "Let k be the number of decimal digits of n. "
+                "n is an Armstrong (narcissistic) number if the sum of (each digit raised to the k-th power) "
+                "equals n. Print Yes or No. "
+                "Single-digit n always satisfies this (k=1), so every 1–9 is Yes."
+            ),
+            examples=[{"input": "9474", "output": "Yes"}, {"input": "123", "output": "No"}, {"input": "153", "output": "Yes"}],
+            tests=[
+                {"input": "1", "output": "Yes"},
+                {"input": "153", "output": "Yes"},
+                {"input": "9474", "output": "Yes"},
+                {"input": "200", "output": "No"},
+                {"input": "123", "output": "No"},
+            ],
         ),
         "floyd triangle pattern": _make_template(
             sample_input="3",
@@ -559,9 +582,9 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
             constraints="n >= 2; values fit 32-bit int.",
             input_format="First line n, second line n integers.",
             output_format=(
-                "Let M be the maximum element. Print the largest value strictly less than M "
-                "if such a value exists (duplicates of M are ignored). "
-                "If every element equals M, print M (there is no strictly smaller value)."
+                "Compute M = maximum element. If some array value is smaller than M, print the largest "
+                "among values strictly less than M (treat duplicate Ms as one maximum). "
+                "If no value is smaller than M (all elements equal), print M."
             ),
             examples=[{"input": "3\n5 5 3", "output": "3"}, {"input": "5\n3 9 9 1 4", "output": "4"}],
             tests=[

@@ -133,8 +133,12 @@ def _dedupe_and_fill_syllabus_questions() -> None:
     """
     from .database import SessionLocal
     from .models import Attempt, Question
-    from .question_content import build_problem_content
-    from .topic_question_seeds import seed_topic_questions_into_db
+    from .question_content import _EXAMPLE_ALIASES, build_problem_content
+    from .topic_question_seeds import (
+        _difficulty_for_problem,
+        parse_topic_from_full_title,
+        seed_topic_questions_into_db,
+    )
 
     db = SessionLocal()
     try:
@@ -157,11 +161,20 @@ def _dedupe_and_fill_syllabus_questions() -> None:
         for question in rows:
             if not (question.module or "").startswith("Phase "):
                 continue
+            title_raw = question.title or ""
+            if "Iseven" in title_raw:
+                question.title = title_raw.replace("Iseven Function Loop", "Is Even Function Loop")
+                corrected += 1
             example = _example_from_title(question.title or "")
             if not example:
                 continue
             try:
-                content = build_problem_content(question.module or "Phase 1 — Foundation", question.module or "General", example)
+                topic = parse_topic_from_full_title(question.module or "", question.title or "") or "General"
+                content = build_problem_content(
+                    question.module or "Phase 1 — Foundation",
+                    topic,
+                    example,
+                )
                 question.description = content.get("description", question.description)
                 question.input_format = content.get("input_format", question.input_format)
                 question.output_format = content.get("output_format", question.output_format)
@@ -172,15 +185,19 @@ def _dedupe_and_fill_syllabus_questions() -> None:
                 question.test_cases_json = content.get("test_cases_json", question.test_cases_json)
                 question.algorithm_hint = content.get("algorithm_hint", question.algorithm_hint)
                 question.functions_hint = content.get("functions_hint", question.functions_hint)
+                key = example.strip().lower()
+                key = _EXAMPLE_ALIASES.get(key, key)
+                question.difficulty = _difficulty_for_problem(question.module or "", key)
                 corrected += 1
             except Exception:
                 continue
 
-        # Remove repeats by semantic key (module + normalized example text), not only title.
+        # Remove repeats only when same module + topic + problem example (keeps one row per syllabus cell).
         by_semantic_key: dict[str, list[Question]] = {}
         for row in rows:
             example = _example_from_title(row.title or "")
-            semantic = f"{(row.module or '').strip().lower()}|{example.strip().lower()}"
+            topic_part = parse_topic_from_full_title(row.module or "", row.title or "") or ""
+            semantic = f"{(row.module or '').strip().lower()}|{topic_part.strip().lower()}|{example.strip().lower()}"
             by_semantic_key.setdefault(semantic, []).append(row)
 
         deduped = 0

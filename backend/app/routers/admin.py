@@ -128,6 +128,11 @@ def export_questions_pdf(
     ) -> None:
         nonlocal y
         safe_full = (text or "").replace("\t", "    ")
+        # PDF viewers often collapse regular U+0020 spaces; NBSP keeps pattern columns aligned.
+        if monospace:
+            safe_full = "\n".join(
+                line.replace(" ", "\u00a0") for line in safe_full.split("\n")
+            )
         for segment in safe_full.split("\n"):
             _draw_wrapped_segment(segment, bold=bold, indent=indent, monospace=monospace)
 

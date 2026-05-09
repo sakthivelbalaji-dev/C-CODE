@@ -196,7 +196,7 @@ STUDENT_METADATA: dict[str, dict[str, str]] = {
         "functions": "`while` reading `%d`; break or condition with sum accumulator.",
     },
     "prime check": {
-        "constraints": "One integer roughly ≥2 check primality semantics.",
+        "constraints": "Any integer: n<2 and negatives are Not; primes are ≥2 with no nontrivial divisor.",
         "algorithm": "Test divisibility by integers upto sqrt heuristic or trial division.",
         "functions": "`for` divides; modulus tests; literals Prime / Not output.",
     },
@@ -216,8 +216,8 @@ STUDENT_METADATA: dict[str, dict[str, str]] = {
         "functions": "`is_prime` helper function recommended; `%d spaced`.",
     },
     "armstrong number check": {
-        "constraints": "One integer verifying digit-power property.",
-        "algorithm": "Count digits duplicate value split digits powering sums compare original.",
+        "constraints": "Generalized Armstrong: with k = digit count, sum of (each digit^k) equals n.",
+        "algorithm": "Count digits k; split digits; raise each to k; sum compare to n.",
         "functions": "`while digit extract`; `pow`/manual multiply loop; Yes/No print.",
     },
     "floyd triangle pattern": {

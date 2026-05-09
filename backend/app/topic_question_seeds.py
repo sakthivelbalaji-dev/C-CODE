@@ -13,6 +13,7 @@ from .question_content import build_problem_content
 
 QUESTIONS_PER_TOPIC = 5
 
+# Each topic row uses a distinct mix of canonical keys to limit copy-paste parity across the PDF/syllabus.
 _TOPIC_SEEDS: list[tuple[str, str, list[str]]] = [
     (
         "Phase 1 — Foundation",
@@ -29,11 +30,11 @@ _TOPIC_SEEDS: list[tuple[str, str, list[str]]] = [
         "Phase 1 — Foundation",
         "Structure of a C Program",
         [
-            "print hello world",
-            "print name and city",
-            "add two numbers",
-            "read name and age greeting",
-            "swap two numbers",
+            "read float decimal places",
+            "read character ascii",
+            "student record variables",
+            "print data type sizes lab",
+            "print simple box border",
         ],
     ),
     (
@@ -44,7 +45,7 @@ _TOPIC_SEEDS: list[tuple[str, str, list[str]]] = [
             "swap two numbers",
             "check even/odd",
             "find largest of 3 numbers",
-            "print hello world",
+            "grade calculator",
         ],
     ),
     (
@@ -52,10 +53,10 @@ _TOPIC_SEEDS: list[tuple[str, str, list[str]]] = [
         "Variables",
         [
             "swap two numbers",
-            "add two numbers",
             "read name and age greeting",
             "read float decimal places",
             "read character ascii",
+            "print name and city",
         ],
     ),
     (
@@ -84,11 +85,11 @@ _TOPIC_SEEDS: list[tuple[str, str, list[str]]] = [
         "Phase 1 — Foundation",
         "Header Files",
         [
+            "print data type sizes lab",
             "print hello world",
             "add two numbers",
-            "read character ascii",
-            "read float decimal places",
-            "print name and city",
+            "print simple box border",
+            "pattern printing",
         ],
     ),
     (
@@ -109,7 +110,7 @@ _TOPIC_SEEDS: list[tuple[str, str, list[str]]] = [
             "print hello world",
             "add two numbers",
             "print simple box border",
-            "print data type sizes lab",
+            "student record variables",
             "pattern printing",
         ],
     ),
@@ -129,9 +130,9 @@ _TOPIC_SEEDS: list[tuple[str, str, list[str]]] = [
         "Increment and Decrement operators",
         [
             "print multiplication table",
-            "check even/odd",
-            "find largest of 3 numbers",
             "read until zero sum",
+            "break on negative sum",
+            "prime check",
             "add two numbers",
         ],
     ),
@@ -140,8 +141,8 @@ _TOPIC_SEEDS: list[tuple[str, str, list[str]]] = [
         "Conditional Statements (if, else, switch)",
         [
             "grade calculator",
-            "check even/odd",
             "day of week switch",
+            "check even/odd",
             "find largest of 3 numbers",
             "leap year",
         ],
@@ -153,7 +154,7 @@ _TOPIC_SEEDS: list[tuple[str, str, list[str]]] = [
             "print multiplication table",
             "read until zero sum",
             "factorial of number",
-            "check even/odd",
+            "fibonacci series",
             "find largest of 3 numbers",
         ],
     ),
@@ -176,29 +177,29 @@ _TOPIC_SEEDS: list[tuple[str, str, list[str]]] = [
             "factorial of number",
             "is even function loop",
             "fibonacci series",
-            "print primes in range",
+            "sum using recursion",
         ],
     ),
     (
         "Phase 3 — Functions",
         "Call by value and call by reference",
         [
+            "swap using pointers",
+            "access array using pointer",
             "factorial using function",
-            "factorial of number",
             "gcd euclidean",
             "lcm using gcd",
-            "swap using pointers",
         ],
     ),
     (
         "Phase 3 — Functions",
         "Using functions for primes, powers, factorial, gcd, lcm",
         [
+            "print primes in range",
+            "prime check",
+            "armstrong number check",
             "gcd euclidean",
             "lcm using gcd",
-            "factorial using function",
-            "fibonacci series",
-            "prime check",
         ],
     ),
     (
@@ -238,22 +239,22 @@ _TOPIC_SEEDS: list[tuple[str, str, list[str]]] = [
         "Phase 5 — Problem Practice",
         "Mixed array, matrix, string, and number-theory drills",
         [
-            "find sum of array",
-            "string length manual",
-            "pattern printing",
-            "linear search array",
-            "check palindrome",
+            "bubble sort array",
+            "pascal triangle rows",
+            "palindrome number",
+            "strong number check",
+            "count vowels consonants spaces",
         ],
     ),
     (
         "Phase 5 — Problem Practice",
         "Patterns, sorts, palindromes, gcd/lcm bundles",
         [
+            "equilateral star pattern",
+            "floyd triangle pattern",
             "pattern printing",
-            "fibonacci series",
-            "check palindrome",
-            "reverse a string",
-            "factorial of number",
+            "matrix print 3x3",
+            "concatenate without strcat",
         ],
     ),
 ]
@@ -284,7 +285,42 @@ def topic_order_index(module: str, topic: str) -> int:
     return 9999
 
 
+_DISPLAY_TITLE_OVERRIDES: dict[str, str] = {
+    "is even function loop": "Is Even Function Loop",
+    "iseven function loop": "Is Even Function Loop",
+}
+
+# Marked easy even when a later phase reuses a simple drill.
+_EASY_PROBLEM_KEYS: frozenset = frozenset(
+    {
+        "print hello world",
+        "add two numbers",
+        "check even/odd",
+        "print name and city",
+        "read name and age greeting",
+        "swap two numbers",
+        "read character ascii",
+        "read float decimal places",
+        "reverse a string",
+        "largest element",
+        "find largest of 3 numbers",
+        "string length manual",
+        "find sum of array",
+        "print multiplication table",
+        "linear search array",
+        "array reverse print",
+        "count vowels consonants spaces",
+        "grade calculator",
+        "day of week switch",
+        "print data type sizes lab",
+    }
+)
+
+
 def _display_name(canonical_key: str) -> str:
+    low = canonical_key.strip().lower()
+    if low in _DISPLAY_TITLE_OVERRIDES:
+        return _DISPLAY_TITLE_OVERRIDES[low]
     return canonical_key.replace("_", " ").strip().title()
 
 
@@ -292,7 +328,9 @@ def _build_title(module: str, topic: str, q_index: int, display: str) -> str:
     return f"{module} — {topic} — Q{q_index + 1}: {display}"
 
 
-def _difficulty_for_module(module: str) -> str:
+def _difficulty_for_problem(module: str, canonical_key: str) -> str:
+    if canonical_key.strip().lower() in _EASY_PROBLEM_KEYS:
+        return "easy"
     if module.startswith("Phase 1") or module.startswith("Phase 2"):
         return "easy"
     return "medium"
@@ -305,7 +343,7 @@ def _payload(module: str, topic: str, q_index: int, canonical_key: str) -> dict:
         "title": _build_title(module, topic, q_index, display),
         "description": content["description"],
         "module": module,
-        "difficulty": _difficulty_for_module(module),
+        "difficulty": _difficulty_for_problem(module, canonical_key),
         "input_format": content["input_format"],
         "output_format": content["output_format"],
         "constraints": content["constraints"],
