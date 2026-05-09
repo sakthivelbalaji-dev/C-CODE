@@ -119,20 +119,27 @@ def export_questions_pdf(
         pdf.setFont("Helvetica", 11)
         y = height - top_margin
 
-    def draw_line(text: str = "", *, bold: bool = False) -> None:
+    def draw_line(text: str = "", *, bold: bool = False, indent: int = 0) -> None:
         nonlocal y
+        safe_full = (text or "").replace("\t", "    ")
+        for segment in safe_full.split("\n"):
+            _draw_wrapped_segment(segment, bold=bold, indent=indent)
+
+    def _draw_wrapped_segment(safe: str, *, bold: bool, indent: int) -> None:
+        nonlocal y
+        margin = left_margin + indent
+        max_chars = max(36, 110 - indent // 5)
+        while len(safe) > max_chars:
+            if y <= top_margin:
+                new_page()
+            pdf.setFont("Helvetica-Bold" if bold else "Helvetica", 11)
+            pdf.drawString(margin, y, safe[:max_chars])
+            safe = safe[max_chars:]
+            y -= line_height
         if y <= top_margin:
             new_page()
         pdf.setFont("Helvetica-Bold" if bold else "Helvetica", 11)
-        safe = (text or "").replace("\t", "    ")
-        max_chars = 110
-        while len(safe) > max_chars:
-            pdf.drawString(left_margin, y, safe[:max_chars])
-            safe = safe[max_chars:]
-            y -= line_height
-            if y <= top_margin:
-                new_page()
-        pdf.drawString(left_margin, y, safe)
+        pdf.drawString(margin, y, safe)
         y -= line_height
 
     draw_line("C Code Lab - Published Questions", bold=True)
@@ -150,7 +157,22 @@ def export_questions_pdf(
         draw_line(f"Constraints: {item.get('constraints') or '-'}")
         draw_line(f"Sample Input: {item.get('sample_input') or '-'}")
         draw_line(f"Expected Output: {item.get('expected_output') or '-'}")
-        draw_line(f"Test Case Count: {item.get('test_case_count') or 0}")
+        tc_list = item.get("test_cases") or []
+        draw_line(f"Judge test case count: {item.get('test_case_count') or len(tc_list)}")
+        if isinstance(tc_list, list) and tc_list:
+            draw_line("All test cases (for evaluation / marking):", bold=True)
+            for ci, case in enumerate(tc_list, start=1):
+                if not isinstance(case, dict):
+                    continue
+                hidden = bool(case.get("is_hidden"))
+                vis = "hidden" if hidden else "public"
+                draw_line(f"Case {ci} ({vis})", bold=True, indent=12)
+                tin = str(case.get("input", "") or "")
+                tout = str(case.get("output", "") or "")
+                draw_line("Input:", bold=True, indent=20)
+                draw_line(tin if tin.strip() else "(empty)", indent=24)
+                draw_line("Expected output:", bold=True, indent=20)
+                draw_line(tout if tout.strip() else "(empty)", indent=24)
         draw_line()
 
     pdf.save()
