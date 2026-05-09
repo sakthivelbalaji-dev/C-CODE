@@ -86,6 +86,7 @@
         <p class="muted">Shows all questions currently in database.</p>
         <button id="refreshBtn">Refresh Questions</button>
         <button id="downloadPdfBtn" style="margin-left:8px;">Download Questions PDF</button>
+        <button id="downloadUniquePdfBtn" style="margin-left:8px;" title="One row per problem name (same drill across topics appears once)">Download Unique PDF</button>
         <div id="listMsg" class="muted"></div>
         <div style="overflow:auto; margin-top:10px;">
           <table>
@@ -211,10 +212,11 @@
       }
     }
 
-    async function downloadQuestionsPdf() {
-      setMsg("listMsg", "Preparing PDF download...", true);
+    async function downloadQuestionsPdf(uniqueProblems = false) {
+      setMsg("listMsg", uniqueProblems ? "Preparing unique PDF..." : "Preparing PDF download...", true);
       try {
-        const res = await fetch(`${API}/admin/questions/export/pdf`, {
+        const q = uniqueProblems ? "?unique_problems=true" : "";
+        const res = await fetch(`${API}/admin/questions/export/pdf${q}`, {
           headers: { "X-Admin-Id": adminId }
         });
         if (!res.ok) {
@@ -225,12 +227,12 @@
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "published-questions.pdf";
+        a.download = uniqueProblems ? "published-questions-unique.pdf" : "published-questions.pdf";
         document.body.appendChild(a);
         a.click();
         a.remove();
         window.URL.revokeObjectURL(url);
-        setMsg("listMsg", "PDF downloaded successfully", true);
+        setMsg("listMsg", uniqueProblems ? "Unique PDF downloaded successfully" : "PDF downloaded successfully", true);
       } catch (err) {
         setMsg("listMsg", err.message || "PDF export failed", false);
       }
@@ -239,7 +241,8 @@
     document.getElementById("loginBtn").addEventListener("click", login);
     document.getElementById("createBtn").addEventListener("click", createQuestion);
     document.getElementById("refreshBtn").addEventListener("click", loadQuestions);
-    document.getElementById("downloadPdfBtn").addEventListener("click", downloadQuestionsPdf);
+    document.getElementById("downloadPdfBtn").addEventListener("click", () => downloadQuestionsPdf(false));
+    document.getElementById("downloadUniquePdfBtn").addEventListener("click", () => downloadQuestionsPdf(true));
 
     if (adminId) {
       document.getElementById("loginCard").classList.add("hidden");

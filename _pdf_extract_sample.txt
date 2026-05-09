@@ -1,0 +1,625 @@
+C Code Lab - Published Questions
+Total Questions: 220
+1. Phase 1 — Foundation — Introduction to C — Q1: Print Hello World
+Module: Phase 1 — Foundation
+Difficulty: easy
+Description: Solve a phase 1 — foundation coding task focused on 'Introduction to C'.
+Problem style: Print Hello World. Read input from stdin and print exact output.
+Input Format: No input.
+Output Format: Print exactly: Hello World
+Constraints: This program runs without waiting for typed input.
+Sample Input: 
+Expected Output: Hello World
+Judge test case count: 1
+All test cases (for evaluation / marking):
+Case 1 (public)
+Input:
+(empty)
+Expected output:
+Hello World
+2. Phase 1 — Foundation — Introduction to C — Q2: Add Two Numbers
+Module: Phase 1 — Foundation
+Difficulty: easy
+Description: Solve a phase 1 — foundation coding task focused on 'Introduction to C'.
+Problem style: Add Two Numbers. Read input from stdin and print exact output.
+Input Format: Two integers a and b.
+Output Format: Print a + b.
+Constraints: The user enters two ordinary integers.
+Sample Input: 7 3
+Expected Output: 10
+Judge test case count: 3
+All test cases (for evaluation / marking):
+Case 1 (public)
+Input:
+2 2
+Expected output:
+4
+Case 2 (public)
+Input:
+10 5
+Expected output:
+15
+Case 3 (public)
+Input:
+-3 -4
+Expected output:
+-7
+3. Phase 1 — Foundation — Introduction to C — Q3: Access Array Using Pointer
+Module: Phase 1 — Foundation
+Difficulty: easy
+Description: Solve a phase 1 — foundation coding task focused on 'Introduction to C'.
+Problem style: Access Array Using Pointer. Read input from stdin and print exact output.
+Input Format: First line n, second line n integers.
+
+Output Format: Print sum of array elements using pointer traversal.
+Constraints: Length plus list of ints.
+Sample Input:
+4
+2 4 6 8
+Expected Output: 20
+Judge test case count: 3
+All test cases (for evaluation / marking):
+Case 1 (public)
+Input:
+1
+9
+Expected output:
+9
+Case 2 (public)
+Input:
+5
+1 2 3 4 5
+Expected output:
+15
+Case 3 (public)
+Input:
+2
+-1 4
+Expected output:
+3
+4. Phase 1 — Foundation — Introduction to C — Q4: Print Name And City
+Module: Phase 1 — Foundation
+Difficulty: easy
+Description: Solve a phase 1 — foundation coding task focused on 'Introduction to C'.
+Problem style: Print Name And City. Read input from stdin and print exact output.
+Input Format: Line 1: name. Line 2: city.
+Output Format: Print name on line 1, city on line 2.
+Constraints: You get two answers the user typed: first the name word, second the city word — each alone on its
+ line.
+Sample Input:
+Riya
+Chennai
+Expected Output (sample):
+Riya
+Chennai
+Judge test case count: 3
+All test cases (for evaluation / marking):
+Case 1 (public)
+Input:
+Ada
+Boston
+Expected output:
+Ada
+Boston
+Case 2 (public)
+Input:
+Riya
+Chennai
+
+Expected output:
+Riya
+Chennai
+Case 3 (public)
+Input:
+Zoe
+Paris
+Expected output:
+Zoe
+Paris
+5. Phase 1 — Foundation — Introduction to C — Q5: Armstrong Number Check
+Module: Phase 1 — Foundation
+Difficulty: easy
+Description: Solve a phase 1 — foundation coding task focused on 'Introduction to C'.
+Problem style: Armstrong Number Check. Read input from stdin and print exact output.
+Input Format: One integer n.
+Output Format: Let k be the number of decimal digits of n. n is an Armstrong (narcissistic) number if the sum 
+of (each digit raised to the k-th power) equals n. Print Yes or No. Single-digit n always satisfies this (k=1)
+, so every 1–9 is Yes.
+Constraints: Generalized Armstrong: with k = digit count, sum of (each digit^k) equals n.
+Sample Input: 153
+Expected Output: Yes
+Judge test case count: 5
+All test cases (for evaluation / marking):
+Case 1 (public)
+Input:
+1
+Expected output:
+Yes
+Case 2 (public)
+Input:
+153
+Expected output:
+Yes
+Case 3 (public)
+Input:
+9474
+Expected output:
+Yes
+Case 4 (public)
+Input:
+200
+Expected output:
+No
+Case 5 (public)
+Input:
+123
+Expected output:
+No
+6. Phase 1 — Foundation — Introduction to C — Q6: Read Name And Age Greeting
+Module: Phase 1 — Foundation
+Difficulty: easy
+Description: Solve a phase 1 — foundation coding task focused on 'Introduction to C'.
+
+Problem style: Read Name And Age Greeting. Read input from stdin and print exact output.
+Input Format: Line 1: name string. Line 2: integer age.
+Output Format: Print one greeting sentence exactly.
+Constraints: Person gives one word nickname, then a normal human age.
+Sample Input:
+Alex
+21
+Expected Output: Hello Alex, you are 21 years old.
+Judge test case count: 3
+All test cases (for evaluation / marking):
+Case 1 (public)
+Input:
+Amy
+17
+Expected output:
+Hello Amy, you are 17 years old.
+Case 2 (public)
+Input:
+Leo
+0
+Expected output:
+Hello Leo, you are 0 years old.
+Case 3 (public)
+Input:
+Zoe
+100
+Expected output:
+Hello Zoe, you are 100 years old.
+7. Phase 1 — Foundation — Introduction to C — Q7: Array Reverse Print
+Module: Phase 1 — Foundation
+Difficulty: easy
+Description: Solve a phase 1 — foundation coding task focused on 'Introduction to C'.
+Problem style: Array Reverse Print. Read input from stdin and print exact output.
+Input Format: First line n, second line n integers.
+Output Format: Print elements in reverse order, space-separated.
+Constraints: `n` then list length n ints.
+Sample Input:
+4
+1 2 3 4
+Expected Output: 4 3 2 1
+Judge test case count: 3
+All test cases (for evaluation / marking):
+Case 1 (public)
+Input:
+1
+42
+Expected output:
+42
+Case 2 (public)
+Input:
+2
+0 5
+Expected output:
+5 0
+
+Case 3 (public)
+Input:
+5
+1 1 2 3 5
+Expected output:
+5 3 2 1 1
+8. Phase 1 — Foundation — Introduction to C — Q8: Student Record Variables
+Module: Phase 1 — Foundation
+Difficulty: easy
+Description: Solve a phase 1 — foundation coding task focused on 'Introduction to C'.
+Problem style: Student Record Variables. Read input from stdin and print exact output.
+Input Format: Four lines: name, age, grade letter, tuition fees.
+Output Format: Print four fields separated by spaces: name age grade fees.
+Constraints: Four separate answers: word name, numeric age, one letter grade, tuition digits.
+Sample Input:
+Mia
+19
+B
+72000
+Expected Output: Mia 19 B 72000
+Judge test case count: 3
+All test cases (for evaluation / marking):
+Case 1 (public)
+Input:
+Raj
+22
+C
+61000
+Expected output:
+Raj 22 C 61000
+Case 2 (public)
+Input:
+Zoe
+18
+F
+8000
+Expected output:
+Zoe 18 F 8000
+Case 3 (public)
+Input:
+Leo
+30
+D
+41234
+Expected output:
+Leo 30 D 41234
+9. Phase 1 — Foundation — Introduction to C — Q9: Break On Negative Sum
+Module: Phase 1 — Foundation
+Difficulty: easy
+Description: Solve a phase 1 — foundation coding task focused on 'Introduction to C'.
+Problem style: Break On Negative Sum. Read input from stdin and print exact output.
+Input Format: First line count n, then n integers one per line (last may be negative).
+Output Format: Print sum of values before first negative integer.
+
+Constraints: Count prefixed then sequence entries until negative sentinel occurs.
+Sample Input:
+3
+5
+8
+-2
+Expected Output: 13
+Judge test case count: 3
+All test cases (for evaluation / marking):
+Case 1 (public)
+Input:
+4
+1
+2
+3
+-9
+Expected output:
+6
+Case 2 (public)
+Input:
+1
+-5
+Expected output:
+0
+Case 3 (public)
+Input:
+5
+2
+2
+2
+2
+-1
+Expected output:
+8
+10. Phase 1 — Foundation — Introduction to C — Q10: Swap Two Numbers
+Module: Phase 1 — Foundation
+Difficulty: easy
+Description: Solve a phase 1 — foundation coding task focused on 'Introduction to C'.
+Problem style: Swap Two Numbers. Read input from stdin and print exact output.
+Input Format: Two integers a and b.
+Output Format: Print swapped values: b a.
+Constraints: Two integers arrive in order.
+Sample Input: 7 3
+Expected Output: 3 7
+Judge test case count: 3
+All test cases (for evaluation / marking):
+Case 1 (public)
+Input:
+1 2
+Expected output:
+2 1
+Case 2 (public)
+Input:
+9 9
+
+Expected output:
+9 9
+Case 3 (public)
+Input:
+-5 8
+Expected output:
+8 -5
+11. Phase 1 — Foundation — Structure of a C Program — Q11: Bubble Sort Array
+Module: Phase 1 — Foundation
+Difficulty: easy
+Description: Solve a phase 1 — foundation coding task focused on 'Structure of a C Program'.
+Problem style: Bubble Sort Array. Read input from stdin and print exact output.
+Input Format: Line 1: n. Line 2: n integers.
+Output Format: Print sorted ascending, space-separated (bubble sort / any stable O(n^2) ok).
+Constraints: `n` moderate sortable ints.
+Sample Input:
+4
+4 1 3 2
+Expected Output: 1 2 3 4
+Judge test case count: 3
+All test cases (for evaluation / marking):
+Case 1 (public)
+Input:
+2
+2 1
+Expected output:
+1 2
+Case 2 (public)
+Input:
+5
+5 4 3 2 1
+Expected output:
+1 2 3 4 5
+Case 3 (public)
+Input:
+1
+7
+Expected output:
+7
+12. Phase 1 — Foundation — Structure of a C Program — Q12: Calculator Switch Menu
+Module: Phase 1 — Foundation
+Difficulty: easy
+Description: Solve a phase 1 — foundation coding task focused on 'Structure of a C Program'.
+Problem style: Calculator Switch Menu. Read input from stdin and print exact output.
+Input Format: Line 1: op. Line 2: a. Line 3: b. Integer division for '/'.
+Output Format: Print integer result.
+Constraints: Operator letter then two operands lines.
+Sample Input:
++
+4
+11
+Expected Output: 15
+Judge test case count: 3
+
+All test cases (for evaluation / marking):
+Case 1 (public)
+Input:
++
+10
+5
+Expected output:
+15
+Case 2 (public)
+Input:
+/
+49
+7
+Expected output:
+7
+Case 3 (public)
+Input:
+*
+6
+7
+Expected output:
+42
+13. Phase 1 — Foundation — Structure of a C Program — Q13: Check Palindrome
+Module: Phase 1 — Foundation
+Difficulty: easy
+Description: Solve a phase 1 — foundation coding task focused on 'Structure of a C Program'.
+Problem style: Check Palindrome. Read input from stdin and print exact output.
+Input Format: One string (no spaces).
+Output Format: Print Yes if palindrome, else No.
+Constraints: One string with no gaps.
+Sample Input: madam
+Expected Output: Yes
+Judge test case count: 3
+All test cases (for evaluation / marking):
+Case 1 (public)
+Input:
+a
+Expected output:
+Yes
+Case 2 (public)
+Input:
+abba
+Expected output:
+Yes
+Case 3 (public)
+Input:
+abc
+Expected output:
+No
+14. Phase 1 — Foundation — Structure of a C Program — Q14: Concatenate Without Strcat
+Module: Phase 1 — Foundation
+Difficulty: easy
+Description: Solve a phase 1 — foundation coding task focused on 'Structure of a C Program'.
+
+Problem style: Concatenate Without Strcat. Read input from stdin and print exact output.
+Input Format: Line 1 string A; line 2 string B.
+Output Format: Print A+B exactly.
+Constraints: Two textual tokens sequentially lines.
+Sample Input:
+code
+lab
+Expected Output: codelab
+Judge test case count: 3
+All test cases (for evaluation / marking):
+Case 1 (public)
+Input:
+x
+yz
+Expected output:
+xyz
+Case 2 (public)
+Input:
+tree
+House
+Expected output:
+treeHouse
+Case 3 (public)
+Input:
+a
+b
+Expected output:
+ab
+15. Phase 1 — Foundation — Structure of a C Program — Q15: Read Float Decimal Places
+Module: Phase 1 — Foundation
+Difficulty: easy
+Description: Solve a phase 1 — foundation coding task focused on 'Structure of a C Program'.
+Problem style: Read Float Decimal Places. Read input from stdin and print exact output.
+Input Format: One float on one line.
+Output Format: Print three values with 2, 4, then 6 decimal places, space-separated.
+Constraints: One fractional number shown with decimal digits.
+Sample Input: 3.14159
+Expected Output: 3.14 3.1416 3.141590
+Judge test case count: 3
+All test cases (for evaluation / marking):
+Case 1 (public)
+Input:
+9.87
+Expected output:
+9.87 9.8700 9.870000
+Case 2 (public)
+Input:
+0.1
+Expected output:
+0.10 0.1000 0.100000
+Case 3 (public)
+Input:
+2.5
+Expected output:
+
+2.50 2.5000 2.500000
+16. Phase 1 — Foundation — Structure of a C Program — Q16: Read Character Ascii
+Module: Phase 1 — Foundation
+Difficulty: easy
+Description: Solve a phase 1 — foundation coding task focused on 'Structure of a C Program'.
+Problem style: Read Character Ascii. Read input from stdin and print exact output.
+Input Format: A single character on one line.
+Output Format: Print its decimal ASCII code.
+Constraints: One visible character keyed by user.
+Sample Input: A
+Expected Output: 65
+Judge test case count: 3
+All test cases (for evaluation / marking):
+Case 1 (public)
+Input:
+0
+Expected output:
+48
+Case 2 (public)
+Input:
+9
+Expected output:
+57
+Case 3 (public)
+Input:
+@
+Expected output:
+64
+17. Phase 1 — Foundation — Structure of a C Program — Q17: Student Record Variables
+Module: Phase 1 — Foundation
+Difficulty: easy
+Description: Solve a phase 1 — foundation coding task focused on 'Structure of a C Program'.
+Problem style: Student Record Variables. Read input from stdin and print exact output.
+Input Format: Four lines: name, age, grade letter, tuition fees.
+Output Format: Print four fields separated by spaces: name age grade fees.
+Constraints: Four separate answers: word name, numeric age, one letter grade, tuition digits.
+Sample Input:
+Mia
+19
+B
+72000
+Expected Output: Mia 19 B 72000
+Judge test case count: 3
+All test cases (for evaluation / marking):
+Case 1 (public)
+Input:
+Raj
+22
+C
+61000
+Expected output:
+Raj 22 C 61000
+Case 2 (public)
+
+Input:
+Zoe
+18
+F
+8000
+Expected output:
+Zoe 18 F 8000
+Case 3 (public)
+Input:
+Leo
+30
+D
+41234
+Expected output:
+Leo 30 D 41234
+18. Phase 1 — Foundation — Structure of a C Program — Q18: Print Data Type Sizes Lab
+Module: Phase 1 — Foundation
+Difficulty: easy
+Description: Solve a phase 1 — foundation coding task focused on 'Structure of a C Program'.
+Problem style: Print Data Type Sizes Lab. Read input from stdin and print exact output.
+Input Format: No input.
+Output Format: Print four integers separated by spaces: sizeof(int) sizeof(float) sizeof(double) sizeof(unsign
+ed char).
+Constraints: No input values (lab assumes fixed widths for grading).
+Sample Input: 
+Expected Output: 4 4 8 1
+Judge test case count: 1
+All test cases (for evaluation / marking):
+Case 1 (public)
+Input:
+(empty)
+Expected output:
+4 4 8 1
+19. Phase 1 — Foundation — Structure of a C Program — Q19: Print Simple Box Border
+Module: Phase 1 — Foundation
+Difficulty: easy
+Description: Solve a phase 1 — foundation coding task focused on 'Structure of a C Program'.
+Problem style: Print Simple Box Border. Read input from stdin and print exact output.
+Input Format: One integer n (side length of hollow square drawn with '*'). Middle uses spaces.
+Output Format: Print exactly n rows: rows 1 and n are n stars; rows 2..n-1 are star, (n-2 spaces), star. Each 
+line ends right after the last character—no trailing spaces.
+Constraints: Border size decides rows/columns counts for hollow square artwork.
+Sample Input: 3
+Expected Output (sample):
+***
+* *
+***
+Judge test case count: 3
+All test cases (for evaluation / marking):
+Case 1 (public)
+Input:
+3
+Expected output:
+
+***
+* *
+***
+Case 2 (public)
+Input:
+4
+Expected output:
+****
+*  *
+*  *
+****
+Case 3 (public)
+Input:
+5
+Expected output:
+*****
+*   *
+*   *
+*   *
+*****
+20. Phase 1 — Foundation — Structure of a C Program — Q20: Swap Two Numbers
+Module: Phase 1 — Foundation
+Difficulty: easy
+Description: Solve a phase 1 — foundation coding task focused on 'Structure of a C Program'.
+Problem style: Swap Two Numbers. Read input from stdin and print exact output.
+Input Format: Two integers a and b.
+Output Format: Print swapped values: b a.
+Constraints:

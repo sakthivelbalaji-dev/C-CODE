@@ -1,4 +1,5 @@
 import json
+import re
 from io import BytesIO
 from typing import List
 
@@ -30,6 +31,37 @@ def _require_admin(
     if user.role not in {"staff", "admin"}:
         raise HTTPException(status_code=403, detail="Only admin/staff can access admin panel")
     return user
+
+
+def _canonical_problem_stem(title: str | None) -> str:
+    """
+    Titles look like ``Phase 1 — … — Introduction to C — Q2: Add Two Numbers``.
+    The stem after ``Qn:`` identifies the same drill across syllabus topics.
+    """
+    if not title:
+        return ""
+    t = title.strip()
+    m = re.search(r"Q\s*\d+\s*:\s*(.+)$", t, re.IGNORECASE | re.DOTALL)
+    if m:
+        return re.sub(r"\s+", " ", m.group(1)).strip().casefold()
+    return re.sub(r"\s+", " ", t).strip().casefold()
+
+
+def _dedupe_questions_unique_problem(
+    questions: list,
+) -> tuple[list, int]:
+    """Keep first row per canonical stem (syllabus order). Returns (filtered, removed_count)."""
+    seen: set[str] = set()
+    out: list = []
+    removed = 0
+    for q in questions:
+        stem = _canonical_problem_stem(q.title)
+        if stem in seen:
+            removed += 1
+            continue
+        seen.add(stem)
+        out.append(q)
+    return out, removed
 
 
 def _serialize_question_for_admin(question: Question) -> dict:
@@ -97,6 +129,10 @@ def create_question_as_admin(
 def export_questions_pdf(
     admin_id: int | None = Query(None),
     x_admin_id: str | None = Header(None),
+    unique_problems: bool = Query(
+        False,
+        description="If true, include each problem type only once (first in syllabus order).",
+    ),
     db: Session = Depends(get_db),
 ):
     _require_admin(db, admin_id=admin_id, x_admin_id=x_admin_id)
@@ -104,6 +140,9 @@ def export_questions_pdf(
         db.query(Question).all(),
         key=question_syllabus_sort_key,
     )
+    removed_dupes = 0
+    if unique_problems:
+        questions, removed_dupes = _dedupe_questions_unique_problem(questions)
 
     buffer = BytesIO()
     pdf = canvas.Canvas(buffer, pagesize=A4)
@@ -160,6 +199,10 @@ def export_questions_pdf(
 
     draw_line("C Code Lab - Published Questions", bold=True)
     draw_line(f"Total Questions: {len(questions)}")
+    if unique_problems and removed_dupes:
+        draw_line(
+            f"(Unique problem types — omitted {removed_dupes} duplicate row(s) with same drill as an earlier question.)"
+        )
     draw_line()
 
     for idx, row in enumerate(questions, start=1):
@@ -207,5 +250,9 @@ def export_questions_pdf(
     return StreamingResponse(
         buffer,
         media_type="application/pdf",
-        headers={"Content-Disposition": 'attachment; filename="published-questions.pdf"'},
+        headers={
+            "Content-Disposition": 'attachment; filename="published-questions-unique.pdf"'
+            if unique_problems
+            else 'attachment; filename="published-questions.pdf"'
+        },
     )
