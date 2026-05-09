@@ -211,7 +211,7 @@ STUDENT_METADATA: dict[str, dict[str, str]] = {
         "functions": "`long long` if wide multiplies avoiding overflow.",
     },
     "print primes in range": {
-        "constraints": "Two bounds inclusive lo hi moderate span.",
+        "constraints": "Two bounds lo and hi on one line (space-separated), inclusive range.",
         "algorithm": "Double loop or sieve-like walk printing ascending primes spaced.",
         "functions": "`is_prime` helper function recommended; `%d spaced`.",
     },
@@ -226,27 +226,27 @@ STUDENT_METADATA: dict[str, dict[str, str]] = {
         "functions": "Nested loops; spaces between ints same row newline between rows.",
     },
     "equilateral star pattern": {
-        "constraints": "Row count pyramid pattern.",
-        "algorithm": "Per row prepend spaces trail spaced stars mirroring symmetrical triangle illustration.",
-        "functions": "`for` indentation spaces inner star printing.",
+        "constraints": "Same spacing rule for every row: row r uses (n-1-r) spaces then r+1 stars with single spaces between stars; no trailing spaces.",
+        "algorithm": "Per row: pad with spaces, then join r+1 stars with ' * ' pattern ending with last star—no space after it.",
+        "functions": "`for` rows; inner loop prints stars; `printf` careful spacing.",
     },
     "break on negative sum": {
         "constraints": "Count prefixed then sequence entries until negative sentinel occurs.",
         "algorithm": "Add positives strictly before first negative skipping negative itself.",
         "functions": "`for`/`while`; break semantics; tally.",
     },
-    "iseven function loop": {
+    "is even function loop": {
         "constraints": "Upper bound counting evens inclusively downward.",
         "algorithm": "`if (!(i%2))` collect even sequence from 2..n spaced.",
         "functions": "Helper `unsigned isEven_like` conceptual or inline check.",
     },
     "gcd euclidean": {
-        "constraints": "Two positive ints.",
+        "constraints": "Two positive integers on one line (space-separated), same as typical scanf pair input.",
         "algorithm": "`while(b){ r=a%b;a=b;b=r;} ` classic swap.",
         "functions": "`%` loop; iterative not necessarily recursion.",
     },
     "lcm using gcd": {
-        "constraints": "Two ints product moderate.",
+        "constraints": "Two integers on one line (space-separated).",
         "algorithm": "`LCM=a*b/GCD(a,b)` after computing gcd reliably.",
         "functions": "`long long`; divide after multiply carefully ordering.",
     },

@@ -12,6 +12,7 @@ _EXAMPLE_ALIASES: dict[str, str] = {
     "check palindrome": "check palindrome",
     "fibonacci series": "fibonacci series",
     "right angle star pattern": "pattern printing",
+    "iseven function loop": "is even function loop",
 }
 
 
@@ -95,9 +96,12 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
         "pattern printing": _make_template(
             sample_input="3",
             expected_output="*\n**\n***",
-            constraints="1 <= n <= 20",
+            constraints="1 <= n <= 20. No trailing spaces at the end of any line.",
             input_format="One integer n.",
-            output_format="Print a right-angle star pattern with n lines.",
+            output_format=(
+                "Print a right-angle star pattern with n lines (only the characters shown—"
+                "no trailing spaces after the last character on each line)."
+            ),
             examples=[{"input": "3", "output": "*\n**\n***"}, {"input": "1", "output": "*"}],
             tests=[{"input": "2", "output": "*\n**"}, {"input": "4", "output": "*\n**\n***\n****"}, {"input": "5", "output": "*\n**\n***\n****\n*****"}],
         ),
@@ -339,11 +343,11 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
         "print simple box border": _make_template(
             sample_input="3",
             expected_output="***\n* *\n***",
-            constraints="3 <= n <= 20.",
+            constraints="3 <= n <= 20. No trailing spaces at the end of any line.",
             input_format="One integer n (side length of hollow square drawn with '*'). Middle uses spaces.",
             output_format=(
                 "Print exactly n rows: rows 1 and n are n stars; rows 2..n-1 are star, "
-                "(n-2 spaces), star."
+                "(n-2 spaces), star. Each line ends right after the last character—no trailing spaces."
             ),
             examples=[
                 {"input": "3", "output": "***\n* *\n***"},
@@ -439,13 +443,13 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
             tests=[{"input": "500\n10\n1", "output": "50"}, {"input": "1500\n8\n2", "output": "240"}, {"input": "9000\n0\n5", "output": "0"}],
         ),
         "print primes in range": _make_template(
-            sample_input="5\n15",
+            sample_input="5 15",
             expected_output="5 7 11 13",
             constraints="1 <= lo <= hi <= 200",
-            input_format="Two integers lo hi on one line.",
+            input_format="One line with two integers lo and hi separated by whitespace.",
             output_format="Print all primes in [lo, hi] inclusive, space-separated, ascending.",
-            examples=[{"input": "1\n10", "output": "2 3 5 7"}, {"input": "5\n15", "output": "5 7 11 13"}],
-            tests=[{"input": "2\n2", "output": "2"}, {"input": "14\n18", "output": "17"}, {"input": "20\n30", "output": "23 29"}],
+            examples=[{"input": "1 10", "output": "2 3 5 7"}, {"input": "5 15", "output": "5 7 11 13"}],
+            tests=[{"input": "2 2", "output": "2"}, {"input": "14 18", "output": "17"}, {"input": "20 30", "output": "23 29"}],
         ),
         "armstrong number check": _make_template(
             sample_input="153",
@@ -459,24 +463,34 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
         "floyd triangle pattern": _make_template(
             sample_input="3",
             expected_output="1\n2 3\n4 5 6",
-            constraints="1 <= n <= 30",
+            constraints="1 <= n <= 30. No trailing spaces at the end of any line.",
             input_format="One integer n (number of rows).",
-            output_format="Floyd triangle: row i has i numbers, space-separated; rows separated by newline.",
+            output_format=(
+                "Floyd triangle: row i has i consecutive integers, numbers separated by a single space; "
+                "rows separated by newline. Each line ends immediately after the last digit—no trailing spaces."
+            ),
             examples=[{"input": "2", "output": "1\n2 3"}, {"input": "3", "output": "1\n2 3\n4 5 6"}],
             tests=[{"input": "1", "output": "1"}, {"input": "4", "output": "1\n2 3\n4 5 6\n7 8 9 10"}, {"input": "3", "output": "1\n2 3\n4 5 6"}],
         ),
         "equilateral star pattern": _make_template(
             sample_input="4",
             expected_output="   *\n  * *\n * * *\n* * * *",
-            constraints="1 <= n <= 20",
-            input_format="One integer n (rows of centered star triangle).",
-            output_format="Each row has leading spaces then stars separated by single space; pattern as sample.",
+            constraints="1 <= n <= 20. No trailing spaces at the end of any line.",
+            input_format="One integer n (number of rows in the centered star triangle).",
+            output_format=(
+                "For each row r from 0 to n-1 (top to bottom): print exactly (n-1-r) spaces, "
+                "then (r+1) stars with a single space between consecutive stars, "
+                "and no space after the last star on that line. "
+                "This centers each row so column alignment matches the sample for every test case."
+            ),
             examples=[
                 {"input": "2", "output": " *\n* *"},
+                {"input": "3", "output": "  *\n * *\n* * *"},
                 {"input": "4", "output": "   *\n  * *\n * * *\n* * * *"},
             ],
             tests=[
                 {"input": "1", "output": "*"},
+                {"input": "2", "output": " *\n* *"},
                 {"input": "3", "output": "  *\n * *\n* * *"},
                 {"input": "4", "output": "   *\n  * *\n * * *\n* * * *"},
             ],
@@ -494,7 +508,7 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
                 {"input": "5\n2\n2\n2\n2\n-1", "output": "8"},
             ],
         ),
-        "iseven function loop": _make_template(
+        "is even function loop": _make_template(
             sample_input="10",
             expected_output="2 4 6 8 10",
             constraints="1 <= n <= 10^4",
@@ -504,22 +518,22 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
             tests=[{"input": "1", "output": ""}, {"input": "4", "output": "2 4"}, {"input": "12", "output": "2 4 6 8 10 12"}],
         ),
         "gcd euclidean": _make_template(
-            sample_input="48\n18",
+            sample_input="48 18",
             expected_output="6",
             constraints="1 <= a,b <= 10^9",
-            input_format="Two integers a b on separate lines.",
+            input_format="One line with two integers a and b separated by whitespace.",
             output_format="Print GCD(a,b).",
-            examples=[{"input": "100\n35", "output": "5"}, {"input": "48\n18", "output": "6"}],
-            tests=[{"input": "7\n13", "output": "1"}, {"input": "54\n24", "output": "6"}, {"input": "17\n17", "output": "17"}],
+            examples=[{"input": "100 35", "output": "5"}, {"input": "48 18", "output": "6"}],
+            tests=[{"input": "7 13", "output": "1"}, {"input": "54 24", "output": "6"}, {"input": "17 17", "output": "17"}],
         ),
         "lcm using gcd": _make_template(
-            sample_input="4\n6",
+            sample_input="4 6",
             expected_output="12",
             constraints="1 <= a,b <= 10^6",
-            input_format="Two integers a b on separate lines.",
+            input_format="One line with two integers a and b separated by whitespace.",
             output_format="Print LCM(a,b) using LCM = a*b/GCD(a,b) with integer arithmetic.",
-            examples=[{"input": "5\n7", "output": "35"}, {"input": "4\n6", "output": "12"}],
-            tests=[{"input": "3\n9", "output": "9"}, {"input": "8\n12", "output": "24"}, {"input": "11\n13", "output": "143"}],
+            examples=[{"input": "5 7", "output": "35"}, {"input": "4 6", "output": "12"}],
+            tests=[{"input": "3 9", "output": "9"}, {"input": "8 12", "output": "24"}, {"input": "11 13", "output": "143"}],
         ),
         "array reverse print": _make_template(
             sample_input="4\n1 2 3 4",

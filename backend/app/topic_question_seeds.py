@@ -174,7 +174,7 @@ _TOPIC_SEEDS: list[tuple[str, str, list[str]]] = [
         [
             "factorial using function",
             "factorial of number",
-            "iseven function loop",
+            "is even function loop",
             "fibonacci series",
             "print primes in range",
         ],
