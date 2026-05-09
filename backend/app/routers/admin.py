@@ -33,6 +33,21 @@ def _require_admin(
     return user
 
 
+def _pdf_question_line_title(full_title: str, catalog_index: int) -> str:
+    """
+    Replace the Q number in stored titles so the PDF lists Q1…Qn in export order
+    (after syllabus sort), independent of database row IDs.
+    """
+    m = re.match(
+        r"^(?P<prefix>.+ — )Q\s*\d+\s*:\s*(?P<rest>.+)$",
+        (full_title or "").strip(),
+        flags=re.DOTALL | re.IGNORECASE,
+    )
+    if m:
+        return f"{m.group('prefix')}Q{catalog_index}: {m.group('rest')}"
+    return full_title or ""
+
+
 def _canonical_problem_stem(title: str | None) -> str:
     """
     Titles look like ``Phase 1 — … — Introduction to C — Q2: Add Two Numbers``.
@@ -268,6 +283,10 @@ def export_questions_pdf(
 
     draw_line("C Code Lab - Published Questions", bold=True)
     draw_line(f"Total Questions: {len(questions)}")
+    draw_line(
+        "Catalog numbers Q1, Q2, … in this PDF follow syllabus order in this export. "
+        "They are not database row IDs. Use the title’s Q number for LMS imports and references."
+    )
     if unique_problems and removed_dupes:
         draw_line(
             f"(Unique problem types — omitted {removed_dupes} duplicate row(s) with same drill as an earlier question.)"
@@ -276,7 +295,8 @@ def export_questions_pdf(
 
     for idx, row in enumerate(questions, start=1):
         item = _serialize_question_for_admin(row)
-        draw_line(f"{idx}. {item['title']}", bold=True)
+        pdf_title = _pdf_question_line_title(item["title"] or "", idx)
+        draw_line(f"{idx}. {pdf_title}", bold=True)
         draw_line(f"Module: {item.get('module') or '-'}")
         draw_line(f"Difficulty: {item.get('difficulty') or '-'}")
         draw_line(f"Description: {item.get('description') or '-'}")
@@ -285,14 +305,16 @@ def export_questions_pdf(
         draw_line(f"Constraints: {item.get('constraints') or '-'}")
         _si = item.get("sample_input")
         _eo = item.get("expected_output")
-        if _si is not None and "\n" in str(_si):
+        _si_s = str(_si) if _si is not None else ""
+        if _si is not None and ("\n" in _si_s or _si_s.startswith(" ")):
             draw_line("Sample Input:", bold=True)
-            draw_line(_si, monospace=True)
+            draw_line(_si_s, monospace=True)
         else:
             draw_line(f"Sample Input: {_si if _si is not None else '-'}")
-        if _eo is not None and "\n" in str(_eo):
+        _eo_s = str(_eo) if _eo is not None else ""
+        if _eo is not None and ("\n" in _eo_s or _eo_s.startswith(" ")):
             draw_line("Expected Output (sample):", bold=True)
-            draw_line(_eo, monospace=True)
+            draw_line(_eo_s, monospace=True)
         else:
             draw_line(f"Expected Output: {_eo if _eo is not None else '-'}")
         tc_list = item.get("test_cases") or []

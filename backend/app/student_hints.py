@@ -91,8 +91,8 @@ STUDENT_METADATA: dict[str, dict[str, str]] = {
         "functions": "User-defined function; prototype + definition; `%d`.",
     },
     "fibonacci series": {
-        "constraints": "Count of terms to emit.",
-        "algorithm": "Start 0 and 1 (or variants per statement); derive next iteratively.",
+        "constraints": "Integer n = how many Fibonacci numbers to print; n may be 0 (print nothing).",
+        "algorithm": "Iteratively build the sequence starting at 0 and 1; for n = 0 print no numbers.",
         "functions": "`for`; two variables swapping previous terms; spaced `printf`.",
     },
     "sum using recursion": {
@@ -136,28 +136,28 @@ STUDENT_METADATA: dict[str, dict[str, str]] = {
         "functions": "`fgets`/`scanf` `%[^\n]`; `printf`; real `fopen` optional.",
     },
     "read file content": {
-        "constraints": "One line echoed as-if read from disk.",
-        "algorithm": "Input passthrough unchanged.",
-        "functions": "`printf` entire buffer.",
+        "constraints": "One line of text from stdin; the task is stdout passthrough (no real file is required).",
+        "algorithm": "Read the line and print it unchanged.",
+        "functions": "`fgets`/`scanf` line read; `printf` the buffer.",
     },
     "copy file": {
-        "constraints": "One line echoed as duplicated output.",
-        "algorithm": "No transform; verbatim copy semantics.",
-        "functions": "Same as stdin echo drills.",
+        "constraints": "One line from stdin — the exercise is stdout echo (no file APIs required).",
+        "algorithm": "Read the line and print it unchanged.",
+        "functions": "Same as stdin echo drills; optional `fopen` only if your course requires it.",
     },
     "print name and city": {
-        "constraints": "You get two answers the user typed: first the name word, second the city word — each alone on its line.",
+        "constraints": "Two lines of input: first the name, then the city (single word each, as in the samples).",
         "algorithm": "Read line 1, read line 2, print exactly the same order on two separate lines.",
         "functions": "Two `%s` reads with `scanf` or two narrow `fgets` strips newline; exactly two `printf` lines.",
     },
     "read name and age greeting": {
-        "constraints": "Person gives one word nickname, then a normal human age.",
+        "constraints": "Two lines: first line is the person’s name (one word); second line is an integer age.",
         "algorithm": 'Build one sentence literally like: Hello <name>, you are <age> years old.',
         "functions": "`char name[]`; `scanf(\"%s%d\", …)` plus `printf`; mind comma placement.",
     },
     "read character ascii": {
-        "constraints": "One visible character keyed by user.",
-        "algorithm": "Cast or print integer form of signed/unsigned char semantics.",
+        "constraints": "Input contains a single character (printable ASCII).",
+        "algorithm": "Treat the character as unsigned char (or cast) and print its decimal code.",
         "functions": "`getchar()` / `scanf(\" %c\", &ch)`; cast `(int)`; `%d`.",
     },
     "read float decimal places": {
@@ -201,9 +201,9 @@ STUDENT_METADATA: dict[str, dict[str, str]] = {
         "functions": "`for` divides; modulus tests; literals Prime / Not output.",
     },
     "leap year": {
-        "constraints": "One calendar year typed.",
-        "algorithm": "Divisibility by 400 /100 /4 Gregorian rules condensed.",
-        "functions": "`if` ladders; Booleans combos; Leap / Not strings.",
+        "constraints": "One integer Gregorian year (e.g. 1900, 1996, 2000, 2100).",
+        "algorithm": "Leap year: divisible by 400, or (divisible by 4 but not by 100). Century years like 1900 and 2100 are not leap years; 2000 is.",
+        "functions": "`if` / `%` for divisibility; print Leap or Not.",
     },
     "simple interest": {
         "constraints": "Three integers Principal Rate Time whole numbers.",
@@ -312,8 +312,8 @@ STUDENT_METADATA: dict[str, dict[str, str]] = {
     },
     "bubble sort array": {
         "constraints": "`n` moderate sortable ints.",
-        "algorithm": "`n-1 passes` adjacent swap until stable sorted ascending.",
-        "functions": "Nested loops flag optional micro optimization unstoppable ok.",
+        "algorithm": "Bubble sort: repeatedly scan, swapping adjacent out-of-order pairs until a pass makes no swaps. If the statement allows, any correct sort is fine.",
+        "functions": "Nested `for` loops; optional early exit when no swap in a pass.",
     },
     "palindrome number": {
         "constraints": "Integer decimal digit symmetry checking.",

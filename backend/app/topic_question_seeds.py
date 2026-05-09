@@ -41,62 +41,113 @@ _SINGLETON_KEYS: frozenset = frozenset(
     }
 )
 
-# Sorted complement: every other template in `question_content` (each used twice).
-_REPEAT_KEYS: tuple[str, ...] = tuple(
-    sorted(
-        {
-            "access array using pointer",
-            "armstrong number check",
-            "array reverse print",
-            "bubble sort array",
-            "break on negative sum",
-            "calculator switch menu",
-            "check palindrome",
-            "concatenate without strcat",
-            "copy file",
-            "count above average",
-            "count vowels",
-            "count vowels consonants spaces",
-            "employee details",
-            "equilateral star pattern",
-            "factorial of number",
-            "factorial using function",
-            "fibonacci series",
-            "find sum of array",
-            "floyd triangle pattern",
-            "gcd euclidean",
-            "is even function loop",
-            "largest element",
-            "lcm using gcd",
-            "linear search array",
-            "matrix addition",
-            "matrix print 3x3",
-            "matrix row column sums",
-            "matrix transpose",
-            "max min average array",
-            "palindrome number",
-            "pascal triangle rows",
-            "pointer to pointer",
-            "prime check",
-            "print primes in range",
-            "product inventory record",
-            "read file content",
-            "reverse a string",
-            "second largest array",
-            "simple interest",
-            "string length manual",
-            "strong number check",
-            "student record system",
-            "sum using recursion",
-            "swap using pointers",
-            "symmetric matrix check",
-            "write data to file",
-        }
-    )
+# Complement of singletons: each of these templates appears exactly twice (92 slots).
+_REPEAT_KEYS: frozenset[str] = frozenset(
+    {
+        "access array using pointer",
+        "armstrong number check",
+        "array reverse print",
+        "bubble sort array",
+        "break on negative sum",
+        "calculator switch menu",
+        "check palindrome",
+        "concatenate without strcat",
+        "copy file",
+        "count above average",
+        "count vowels",
+        "count vowels consonants spaces",
+        "employee details",
+        "equilateral star pattern",
+        "factorial of number",
+        "factorial using function",
+        "fibonacci series",
+        "find sum of array",
+        "floyd triangle pattern",
+        "gcd euclidean",
+        "is even function loop",
+        "largest element",
+        "lcm using gcd",
+        "linear search array",
+        "matrix addition",
+        "matrix print 3x3",
+        "matrix row column sums",
+        "matrix transpose",
+        "max min average array",
+        "palindrome number",
+        "pascal triangle rows",
+        "pointer to pointer",
+        "prime check",
+        "print primes in range",
+        "product inventory record",
+        "read file content",
+        "reverse a string",
+        "second largest array",
+        "simple interest",
+        "string length manual",
+        "strong number check",
+        "student record system",
+        "sum using recursion",
+        "swap using pointers",
+        "symmetric matrix check",
+        "write data to file",
+    }
+)
+
+# Pedagogical stream order (two concatenated copies supply 92 repeat pulls). This keeps
+# intro I/O problems approachable, moves pointer/array drills to suitable phases, and avoids
+# number-theory topics under “Compilation process”.
+_PEDAGOGICAL_REPEAT_ORDER: tuple[str, ...] = (
+    "simple interest",
+    "is even function loop",
+    "count vowels",
+    "linear search array",
+    "array reverse print",
+    "find sum of array",
+    "largest element",
+    "max min average array",
+    "gcd euclidean",
+    "lcm using gcd",
+    "factorial of number",
+    "factorial using function",
+    "pointer to pointer",
+    "swap using pointers",
+    "fibonacci series",
+    "sum using recursion",
+    "armstrong number check",
+    "palindrome number",
+    "floyd triangle pattern",
+    "pascal triangle rows",
+    "equilateral star pattern",
+    "bubble sort array",
+    "second largest array",
+    "access array using pointer",
+    "matrix print 3x3",
+    "matrix addition",
+    "matrix transpose",
+    "matrix row column sums",
+    "concatenate without strcat",
+    "string length manual",
+    "reverse a string",
+    "check palindrome",
+    "calculator switch menu",
+    "break on negative sum",
+    "employee details",
+    "product inventory record",
+    "read file content",
+    "prime check",
+    "print primes in range",
+    "student record system",
+    "strong number check",
+    "symmetric matrix check",
+    "count above average",
+    "count vowels consonants spaces",
+    "copy file",
+    "write data to file",
 )
 
 assert len(_SINGLETON_KEYS) + len(_REPEAT_KEYS) == 64, "must match question_content template count"
 assert len(_SINGLETON_KEYS) == 18 and len(_REPEAT_KEYS) == 46
+assert len(_PEDAGOGICAL_REPEAT_ORDER) == 46 and set(_PEDAGOGICAL_REPEAT_ORDER) == _REPEAT_KEYS
 
 # (module, topic, singleton key or None if all five come from the repeat pool)
 _SYLLABUS_ROWS: tuple[tuple[str, str, str | None], ...] = (
@@ -126,7 +177,7 @@ _SYLLABUS_ROWS: tuple[tuple[str, str, str | None], ...] = (
 
 
 def _build_topic_seeds() -> list[tuple[str, str, list[str]]]:
-    repeat_queue: list[str] = list(_REPEAT_KEYS) + list(_REPEAT_KEYS)
+    repeat_queue: list[str] = list(_PEDAGOGICAL_REPEAT_ORDER) + list(_PEDAGOGICAL_REPEAT_ORDER)
     qi = 0
     out: list[tuple[str, str, list[str]]] = []
     for module, topic, single in _SYLLABUS_ROWS:
@@ -177,6 +228,9 @@ def topic_order_index(module: str, topic: str) -> int:
 _DISPLAY_TITLE_OVERRIDES: dict[str, str] = {
     "is even function loop": "Is Even Function Loop",
     "iseven function loop": "Is Even Function Loop",
+    "read character ascii": "Read Character ASCII",
+    "copy file": "Echo Input Line",
+    "read file content": "Print Input Text",
 }
 
 # Marked easy even when a later phase reuses a simple drill.
@@ -205,6 +259,24 @@ _EASY_PROBLEM_KEYS: frozenset = frozenset(
     }
 )
 
+# Keep “medium” even in Phase 1–2 when the drill is heavier than basic I/O or conditions.
+_MEDIUM_ALWAYS_KEYS: frozenset[str] = frozenset(
+    {
+        "bubble sort array",
+        "armstrong number check",
+        "floyd triangle pattern",
+        "pascal triangle rows",
+        "equilateral star pattern",
+        "symmetric matrix check",
+        "pointer to pointer",
+        "matrix addition",
+        "matrix transpose",
+        "matrix row column sums",
+        "second largest array",
+        "strong number check",
+    }
+)
+
 
 def _display_name(canonical_key: str) -> str:
     low = canonical_key.strip().lower()
@@ -213,23 +285,27 @@ def _display_name(canonical_key: str) -> str:
     return canonical_key.replace("_", " ").strip().title()
 
 
-def _build_title(module: str, topic: str, q_index: int, display: str) -> str:
-    return f"{module} — {topic} — Q{q_index + 1}: {display}"
+def _build_title(module: str, topic: str, display: str, *, catalog_q: int) -> str:
+    """Catalog numbers Q1…Qn run in syllabus order across all topics (not per-topic Q1–Q5)."""
+    return f"{module} — {topic} — Q{catalog_q}: {display}"
 
 
 def _difficulty_for_problem(module: str, canonical_key: str) -> str:
-    if canonical_key.strip().lower() in _EASY_PROBLEM_KEYS:
+    k = canonical_key.strip().lower()
+    if k in _MEDIUM_ALWAYS_KEYS:
+        return "medium"
+    if k in _EASY_PROBLEM_KEYS:
         return "easy"
     if module.startswith("Phase 1") or module.startswith("Phase 2"):
         return "easy"
     return "medium"
 
 
-def _payload(module: str, topic: str, q_index: int, canonical_key: str) -> dict:
+def _payload(module: str, topic: str, q_index: int, canonical_key: str, *, catalog_q: int) -> dict:
     display = _display_name(canonical_key)
     content = build_problem_content(module, topic, display)
     return {
-        "title": _build_title(module, topic, q_index, display),
+        "title": _build_title(module, topic, display, catalog_q=catalog_q),
         "description": content["description"],
         "module": module,
         "difficulty": _difficulty_for_problem(module, canonical_key),
@@ -257,11 +333,13 @@ def seed_topic_questions_into_db(db: Session, *, reset: bool) -> int:
 
     existing = {q.title for q in db.query(Question).all()}
     added = 0
+    catalog_q = 1
     for module, topic, keys in _TOPIC_SEEDS:
         if len(keys) != QUESTIONS_PER_TOPIC:
             raise ValueError(f"{module} / {topic}: expected {QUESTIONS_PER_TOPIC} keys, got {len(keys)}")
         for i, key in enumerate(keys):
-            payload = _payload(module, topic, i, key)
+            payload = _payload(module, topic, i, key, catalog_q=catalog_q)
+            catalog_q += 1
             if payload["title"] in existing:
                 continue
             db.add(Question(**payload))

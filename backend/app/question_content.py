@@ -171,11 +171,20 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
         "fibonacci series": _make_template(
             sample_input="7",
             expected_output="0 1 1 2 3 5 8",
-            constraints="1 <= n <= 40",
-            input_format="One integer n (number of terms).",
-            output_format="Print first n Fibonacci numbers separated by spaces.",
-            examples=[{"input": "5", "output": "0 1 1 2 3"}, {"input": "1", "output": "0"}],
-            tests=[{"input": "2", "output": "0 1"}, {"input": "3", "output": "0 1 1"}, {"input": "6", "output": "0 1 1 2 3 5"}],
+            constraints="0 <= n <= 40",
+            input_format="One integer n (number of terms). For n = 0, print an empty line (no numbers).",
+            output_format="Print the first n Fibonacci numbers separated by spaces (or print nothing for n = 0).",
+            examples=[
+                {"input": "5", "output": "0 1 1 2 3"},
+                {"input": "1", "output": "0"},
+                {"input": "0", "output": ""},
+            ],
+            tests=[
+                {"input": "0", "output": ""},
+                {"input": "2", "output": "0 1"},
+                {"input": "3", "output": "0 1 1"},
+                {"input": "6", "output": "0 1 1 2 3 5"},
+            ],
         ),
         "sum using recursion": _make_template(
             sample_input="5",
@@ -244,8 +253,8 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
             sample_input="hello",
             expected_output="hello",
             constraints="1 <= length <= 1000",
-            input_format="A single line of text.",
-            output_format="Echo the same text (simulating file write/read).",
+            input_format="A single line of text (stdin).",
+            output_format="Print the same line (I/O drill — using fopen/fwrite is optional; stdin echo matches the checker).",
             examples=[{"input": "hello", "output": "hello"}, {"input": "c lab", "output": "c lab"}],
             tests=[{"input": "abc", "output": "abc"}, {"input": "123", "output": "123"}, {"input": "file data", "output": "file data"}],
         ),
@@ -253,25 +262,25 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
             sample_input="sample content",
             expected_output="sample content",
             constraints="1 <= length <= 1000",
-            input_format="A single line of text.",
-            output_format="Print the given text (simulating file content read).",
+            input_format="A single line of text (stdin).",
+            output_format="Print that line unchanged (same as reading text into a buffer and printing it).",
             examples=[{"input": "sample content", "output": "sample content"}, {"input": "line", "output": "line"}],
             tests=[{"input": "x", "output": "x"}, {"input": "read me", "output": "read me"}, {"input": "42", "output": "42"}],
         ),
         "copy file": _make_template(
-            sample_input="copy this",
-            expected_output="copy this",
+            sample_input="one line of text",
+            expected_output="one line of text",
             constraints="1 <= length <= 1000",
-            input_format="A single line of text.",
-            output_format="Print the same text (simulating copy output).",
-            examples=[{"input": "copy this", "output": "copy this"}, {"input": "abc xyz", "output": "abc xyz"}],
+            input_format="A single line of text (stdin).",
+            output_format="Print the same line (stdin echo — no file APIs required).",
+            examples=[{"input": "hello", "output": "hello"}, {"input": "abc xyz", "output": "abc xyz"}],
             tests=[{"input": "mno", "output": "mno"}, {"input": "data", "output": "data"}, {"input": "done", "output": "done"}],
         ),
         # --- "C Foundation -- Updated.pdf" phase-aligned templates ---
         "print name and city": _make_template(
             sample_input="Riya\nChennai",
             expected_output="Riya\nChennai",
-            constraints="single-word name and city each on its own input line.",
+            constraints="Two lines: first line is the name, second line is the city (each line is a single word).",
             input_format="Line 1: name. Line 2: city.",
             output_format="Print name on line 1, city on line 2.",
             examples=[
@@ -287,7 +296,7 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
         "read name and age greeting": _make_template(
             sample_input="Alex\n21",
             expected_output="Hello Alex, you are 21 years old.",
-            constraints="0 <= age <= 120; single-word name (no spaces).",
+            constraints="0 <= age <= 120. Line 1 is one word (the name); line 2 is the age.",
             input_format="Line 1: name string. Line 2: integer age.",
             output_format="Print one greeting sentence exactly.",
             examples=[
@@ -443,7 +452,12 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
             input_format="One integer year.",
             output_format="Print Leap or Not",
             examples=[{"input": "2023", "output": "Not"}, {"input": "2024", "output": "Leap"}],
-            tests=[{"input": "2000", "output": "Leap"}, {"input": "1900", "output": "Not"}, {"input": "1996", "output": "Leap"}],
+            tests=[
+                {"input": "2000", "output": "Leap"},
+                {"input": "1900", "output": "Not"},
+                {"input": "2100", "output": "Not"},
+                {"input": "1996", "output": "Leap"},
+            ],
         ),
         "simple interest": _make_template(
             sample_input="1000\n5\n2",
@@ -543,11 +557,17 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
         "gcd euclidean": _make_template(
             sample_input="48 18",
             expected_output="6",
-            constraints="1 <= a,b <= 10^9",
+            constraints="0 <= a,b <= 10^9, not both zero. GCD(0, x) = x.",
             input_format="One line with two integers a and b separated by whitespace.",
             output_format="Print GCD(a,b).",
             examples=[{"input": "100 35", "output": "5"}, {"input": "48 18", "output": "6"}],
-            tests=[{"input": "7 13", "output": "1"}, {"input": "54 24", "output": "6"}, {"input": "17 17", "output": "17"}],
+            tests=[
+                {"input": "7 13", "output": "1"},
+                {"input": "54 24", "output": "6"},
+                {"input": "17 17", "output": "17"},
+                {"input": "0 15", "output": "15"},
+                {"input": "0 0", "output": "0"},
+            ],
         ),
         "lcm using gcd": _make_template(
             sample_input="4 6",
@@ -713,7 +733,10 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
             expected_output="1 2 3 4",
             constraints="1 <= n <= 500",
             input_format="Line 1: n. Line 2: n integers.",
-            output_format="Print sorted ascending, space-separated (bubble sort / any stable O(n^2) ok).",
+            output_format=(
+                "Print the integers in non-decreasing order, space-separated. "
+                "Implement bubble sort (repeated adjacent swaps until no swaps occur), unless your instructor allows any correct sorting method."
+            ),
             examples=[{"input": "3\n9 1 5", "output": "1 5 9"}, {"input": "4\n4 1 3 2", "output": "1 2 3 4"}],
             tests=[
                 {"input": "2\n2 1", "output": "1 2"},
