@@ -289,7 +289,7 @@ def _renumber_phase_question_titles() -> None:
     """Ensure each Phase module uses serial Q numbers (Q1, Q2, Q3...)."""
     from .database import SessionLocal
     from .models import Question
-    from .syllabus import module_sort_rank, title_question_rank
+    from .syllabus import question_syllabus_sort_key
 
     db = SessionLocal()
     try:
@@ -309,7 +309,7 @@ def _renumber_phase_question_titles() -> None:
         for module_name, items in grouped.items():
             ordered = sorted(
                 items,
-                key=lambda row: (module_sort_rank(row.module), title_question_rank(row.title), row.id),
+                key=question_syllabus_sort_key,
             )
             for idx, question in enumerate(ordered, start=1):
                 old_title = question.title or ""

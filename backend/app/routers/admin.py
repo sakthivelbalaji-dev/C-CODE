@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Question, Student
 from ..schemas import QuestionCreate, QuestionOut
-from ..syllabus import module_sort_rank, title_question_rank
+from ..syllabus import question_syllabus_sort_key
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -70,7 +70,7 @@ def list_all_questions_for_admin(
     _require_admin(db, admin_id=admin_id, x_admin_id=x_admin_id)
     questions = sorted(
         db.query(Question).all(),
-        key=lambda row: (module_sort_rank(row.module), title_question_rank(row.title), row.id),
+        key=question_syllabus_sort_key,
     )
     return [_serialize_question_for_admin(question) for question in questions]
 
@@ -102,7 +102,7 @@ def export_questions_pdf(
     _require_admin(db, admin_id=admin_id, x_admin_id=x_admin_id)
     questions = sorted(
         db.query(Question).all(),
-        key=lambda row: (module_sort_rank(row.module), title_question_rank(row.title), row.id),
+        key=question_syllabus_sort_key,
     )
 
     buffer = BytesIO()

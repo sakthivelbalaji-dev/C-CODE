@@ -31,6 +31,21 @@ def module_sort_rank(module_name: str | None) -> int:
     return _SYLLABUS_ORDER_MAP.get(module_name or "", 9999)
 
 
+def question_syllabus_sort_key(row: object) -> tuple:
+    """
+    Phase order → topic order (C Foundation PDF / _TOPIC_SEEDS) → Q number in title → id.
+    Without topic order, every ``Q1`` collides across topics and listing order became arbitrary.
+    """
+    from .topic_question_seeds import parse_topic_from_full_title, topic_order_index
+
+    module = getattr(row, "module", None) or ""
+    title = getattr(row, "title", None) or ""
+    qid = getattr(row, "id", 0) or 0
+    topic = parse_topic_from_full_title(module, title)
+    topic_rank = topic_order_index(module, topic) if topic is not None else 9999
+    return (module_sort_rank(module), topic_rank, title_question_rank(title), qid)
+
+
 def title_question_rank(title: str | None) -> int:
     """
     Extract `Q<number>` rank from titles like:

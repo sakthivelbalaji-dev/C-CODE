@@ -16,7 +16,7 @@ from ..schemas import (
     QuestionPublicOut,
     ResumeProgressOut,
 )
-from ..syllabus import module_sort_rank, title_question_rank
+from ..syllabus import question_syllabus_sort_key
 
 router = APIRouter(prefix="/questions", tags=["questions"])
 DEFAULT_FALLBACK_CASES = [
@@ -36,7 +36,7 @@ def _next_unsolved_question(db: Session, student_id: int) -> tuple[Question | No
     }
     ordered = sorted(
         db.query(Question).all(),
-        key=lambda row: (module_sort_rank(row.module), title_question_rank(row.title), row.id),
+        key=question_syllabus_sort_key,
     )
     for row in ordered:
         if row.id not in solved_ids:
@@ -66,7 +66,7 @@ def list_questions(module: str | None = None, difficulty: str | None = None, db:
         query = query.filter(Question.difficulty == difficulty.lower())
     questions = sorted(
         query.all(),
-        key=lambda row: (module_sort_rank(row.module), title_question_rank(row.title), row.id),
+        key=question_syllabus_sort_key,
     )
     return [_serialize_question(question) for question in questions]
 
@@ -124,7 +124,7 @@ def get_following_question_in_syllabus(
     """Next question in syllabus order, skipping solved ones when student_id is provided."""
     ordered = sorted(
         db.query(Question).all(),
-        key=lambda row: (module_sort_rank(row.module), title_question_rank(row.title), row.id),
+        key=question_syllabus_sort_key,
     )
     solved_ids: set[int] = set()
     if student_id is not None:

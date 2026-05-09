@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Attempt, Question, Student
 from ..schemas import AttemptCreate, AttemptDetailOut, AttemptOut, LeaderboardEntry
-from ..syllabus import module_sort_rank, title_question_rank
+from ..syllabus import question_syllabus_sort_key
 
 router = APIRouter(prefix="/attempts", tags=["attempts"])
 
@@ -111,7 +111,7 @@ def create_attempt(payload: AttemptCreate, db: Session = Depends(get_db)):
         }
         ordered_questions = sorted(
             db.query(Question).all(),
-            key=lambda row: (module_sort_rank(row.module), title_question_rank(row.title), row.id),
+            key=question_syllabus_sort_key,
         )
         ordered_question_ids = [row.id for row in ordered_questions]
         if ordered_question_ids:

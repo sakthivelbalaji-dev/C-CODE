@@ -22,17 +22,17 @@ _TOPIC_SEEDS: list[tuple[str, str, list[str]]] = [
             "add two numbers",
             "print name and city",
             "read name and age greeting",
-            "student record variables",
+            "swap two numbers",
         ],
     ),
     (
         "Phase 1 — Foundation",
         "Structure of a C Program",
         [
+            "print hello world",
             "print name and city",
-            "student record variables",
-            "read name and age greeting",
             "add two numbers",
+            "read name and age greeting",
             "swap two numbers",
         ],
     ),
@@ -44,7 +44,7 @@ _TOPIC_SEEDS: list[tuple[str, str, list[str]]] = [
             "swap two numbers",
             "check even/odd",
             "find largest of 3 numbers",
-            "grade calculator",
+            "print hello world",
         ],
     ),
     (
@@ -52,7 +52,7 @@ _TOPIC_SEEDS: list[tuple[str, str, list[str]]] = [
         "Variables",
         [
             "swap two numbers",
-            "student record variables",
+            "add two numbers",
             "read name and age greeting",
             "read float decimal places",
             "read character ascii",
@@ -64,31 +64,31 @@ _TOPIC_SEEDS: list[tuple[str, str, list[str]]] = [
         [
             "read character ascii",
             "read float decimal places",
-            "print data type sizes lab",
             "add two numbers",
             "check even/odd",
+            "print hello world",
         ],
     ),
     (
         "Phase 1 — Foundation",
         "Constants",
         [
-            "print data type sizes lab",
-            "read character ascii",
-            "add two numbers",
             "print hello world",
+            "add two numbers",
+            "read character ascii",
             "read float decimal places",
+            "print name and city",
         ],
     ),
     (
         "Phase 1 — Foundation",
         "Header Files",
         [
-            "print data type sizes lab",
             "print hello world",
             "add two numbers",
             "read character ascii",
             "read float decimal places",
+            "print name and city",
         ],
     ),
     (
@@ -98,7 +98,7 @@ _TOPIC_SEEDS: list[tuple[str, str, list[str]]] = [
             "print name and city",
             "read float decimal places",
             "read name and age greeting",
-            "student record variables",
+            "add two numbers",
             "read character ascii",
         ],
     ),
@@ -106,11 +106,11 @@ _TOPIC_SEEDS: list[tuple[str, str, list[str]]] = [
         "Phase 1 — Foundation",
         "Compilation process",
         [
-            "print simple box border",
             "print hello world",
+            "add two numbers",
+            "print simple box border",
             "print data type sizes lab",
             "pattern printing",
-            "add two numbers",
         ],
     ),
     (
@@ -119,8 +119,8 @@ _TOPIC_SEEDS: list[tuple[str, str, list[str]]] = [
         [
             "check even/odd",
             "find largest of 3 numbers",
+            "add two numbers",
             "simple interest",
-            "calculator switch menu",
             "print multiplication table",
         ],
     ),
@@ -129,10 +129,10 @@ _TOPIC_SEEDS: list[tuple[str, str, list[str]]] = [
         "Increment and Decrement operators",
         [
             "print multiplication table",
-            "read until zero sum",
-            "find largest of 3 numbers",
-            "break on negative sum",
             "check even/odd",
+            "find largest of 3 numbers",
+            "read until zero sum",
+            "add two numbers",
         ],
     ),
     (
@@ -140,9 +140,9 @@ _TOPIC_SEEDS: list[tuple[str, str, list[str]]] = [
         "Conditional Statements (if, else, switch)",
         [
             "grade calculator",
-            "day of week switch",
             "check even/odd",
-            "prime check",
+            "day of week switch",
+            "find largest of 3 numbers",
             "leap year",
         ],
     ),
@@ -152,9 +152,9 @@ _TOPIC_SEEDS: list[tuple[str, str, list[str]]] = [
         [
             "print multiplication table",
             "read until zero sum",
-            "prime check",
-            "fibonacci series",
             "factorial of number",
+            "check even/odd",
+            "find largest of 3 numbers",
         ],
     ),
     (
@@ -163,8 +163,8 @@ _TOPIC_SEEDS: list[tuple[str, str, list[str]]] = [
         [
             "break on negative sum",
             "read until zero sum",
-            "calculator switch menu",
             "print multiplication table",
+            "check even/odd",
             "simple interest",
         ],
     ),
@@ -172,11 +172,11 @@ _TOPIC_SEEDS: list[tuple[str, str, list[str]]] = [
         "Phase 3 — Functions",
         "Function declaration, definition, and call",
         [
-            "print primes in range",
-            "fibonacci series",
             "factorial using function",
-            "gcd euclidean",
-            "lcm using gcd",
+            "factorial of number",
+            "iseven function loop",
+            "fibonacci series",
+            "print primes in range",
         ],
     ),
     (
@@ -184,32 +184,32 @@ _TOPIC_SEEDS: list[tuple[str, str, list[str]]] = [
         "Call by value and call by reference",
         [
             "factorial using function",
-            "sum using recursion",
-            "swap using pointers",
+            "factorial of number",
             "gcd euclidean",
-            "armstrong number check",
+            "lcm using gcd",
+            "swap using pointers",
         ],
     ),
     (
         "Phase 3 — Functions",
         "Using functions for primes, powers, factorial, gcd, lcm",
         [
-            "armstrong number check",
             "gcd euclidean",
             "lcm using gcd",
-            "factorial of number",
-            "floyd triangle pattern",
+            "factorial using function",
+            "fibonacci series",
+            "prime check",
         ],
     ),
     (
         "Phase 4 — Data Collections",
         "One-dimensional arrays",
         [
+            "find sum of array",
+            "largest element",
+            "linear search array",
             "array reverse print",
             "max min average array",
-            "second largest array",
-            "linear search array",
-            "count above average",
         ],
     ),
     (
@@ -227,36 +227,61 @@ _TOPIC_SEEDS: list[tuple[str, str, list[str]]] = [
         "Phase 4 — Data Collections",
         "Strings basics and manipulation",
         [
+            "string length manual",
             "reverse a string",
+            "count vowels consonants spaces",
             "check palindrome",
             "concatenate without strcat",
-            "string length manual",
-            "count vowels consonants spaces",
         ],
     ),
     (
         "Phase 5 — Problem Practice",
         "Mixed array, matrix, string, and number-theory drills",
         [
-            "pascal triangle rows",
-            "bubble sort array",
-            "strong number check",
-            "palindrome number",
             "find sum of array",
+            "string length manual",
+            "pattern printing",
+            "linear search array",
+            "check palindrome",
         ],
     ),
     (
         "Phase 5 — Problem Practice",
         "Patterns, sorts, palindromes, gcd/lcm bundles",
         [
-            "bubble sort array",
-            "check palindrome",
             "pattern printing",
-            "equilateral star pattern",
-            "floyd triangle pattern",
+            "fibonacci series",
+            "check palindrome",
+            "reverse a string",
+            "factorial of number",
         ],
     ),
 ]
+
+
+def parse_topic_from_full_title(module: str, title: str) -> str | None:
+    """
+    Titles from _build_title look like:
+    ``Phase 1 — Foundation — Introduction to C — Q1: Print Hello World``
+    """
+    sep = " — "
+    prefix = module + sep
+    if not title.startswith(prefix):
+        return None
+    rest = title[len(prefix) :]
+    marker = " — Q"
+    pos = rest.rfind(marker)
+    if pos == -1:
+        return None
+    return rest[:pos].strip()
+
+
+def topic_order_index(module: str, topic: str) -> int:
+    """Row order in _TOPIC_SEEDS matches the C Foundation syllabus topic order within each phase."""
+    for i, (m, t, _) in enumerate(_TOPIC_SEEDS):
+        if m == module and t == topic:
+            return i
+    return 9999
 
 
 def _display_name(canonical_key: str) -> str:
@@ -267,6 +292,12 @@ def _build_title(module: str, topic: str, q_index: int, display: str) -> str:
     return f"{module} — {topic} — Q{q_index + 1}: {display}"
 
 
+def _difficulty_for_module(module: str) -> str:
+    if module.startswith("Phase 1") or module.startswith("Phase 2"):
+        return "easy"
+    return "medium"
+
+
 def _payload(module: str, topic: str, q_index: int, canonical_key: str) -> dict:
     display = _display_name(canonical_key)
     content = build_problem_content(module, topic, display)
@@ -274,7 +305,7 @@ def _payload(module: str, topic: str, q_index: int, canonical_key: str) -> dict:
         "title": _build_title(module, topic, q_index, display),
         "description": content["description"],
         "module": module,
-        "difficulty": "medium",
+        "difficulty": _difficulty_for_module(module),
         "input_format": content["input_format"],
         "output_format": content["output_format"],
         "constraints": content["constraints"],
