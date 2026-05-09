@@ -108,10 +108,11 @@ def judge_c_code(payload: JudgeRequest, db: Session = Depends(get_db)):
                         final_status = "Wrong Answer"
 
                 hidden_case = question is not None and is_hidden_test_case(case)
-                if question is None:
-                    show_input, show_expected, show_got = case_input, expected_output, got_output
+                if hidden_case:
+                    # Do not reveal I/O for graded hidden cases (still shows pass/fail).
+                    show_input = show_expected = show_got = "— hidden —"
                 else:
-                    show_input, show_expected, show_got = "-", "-", "-"
+                    show_input, show_expected, show_got = case_input, expected_output, got_output
 
                 case_results.append(
                     JudgeCaseResult(
