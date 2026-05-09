@@ -55,13 +55,36 @@ def _dedupe_questions_unique_problem(
     out: list = []
     removed = 0
     for q in questions:
-        stem = _canonical_problem_stem(q.title)
+        stem = _problem_stem_dedupe_key(q.title, q.id)
         if stem in seen:
             removed += 1
             continue
         seen.add(stem)
         out.append(q)
     return out, removed
+
+
+def _problem_stem_dedupe_key(title: str | None, question_id: int) -> str:
+    """Same canonical stem for duplicate detection; bare/invalid titles never merge."""
+    stem = _canonical_problem_stem(title)
+    return stem if stem else f"__no_stem_{question_id}"
+
+
+def _plan_question_dedupe_by_stem(
+    questions: list,
+) -> tuple[list[int], list[int]]:
+    """Return (keep_ids, delete_ids) in syllabus order: first occurrence wins."""
+    seen: set[str] = set()
+    keep_ids: list[int] = []
+    delete_ids: list[int] = []
+    for q in questions:
+        key = _problem_stem_dedupe_key(q.title, q.id)
+        if key in seen:
+            delete_ids.append(q.id)
+            continue
+        seen.add(key)
+        keep_ids.append(q.id)
+    return keep_ids, delete_ids
 
 
 def _serialize_question_for_admin(question: Question) -> dict:
@@ -123,6 +146,52 @@ def create_question_as_admin(
     db.commit()
     db.refresh(question)
     return _serialize_question_for_admin(question)
+
+
+@router.post("/questions/deduplicate-by-problem-stem")
+def deduplicate_questions_by_problem_stem(
+    admin_id: int | None = Query(None),
+    x_admin_id: str | None = Header(None),
+    confirm: bool = Query(
+        False,
+        description="If true, delete duplicate rows (keeps first in syllabus order per problem name).",
+    ),
+    db: Session = Depends(get_db),
+):
+    """
+    Removes duplicate question rows that share the same drill name (text after ``Qn:`` in the title),
+    matching the PDF duplicate report. The first row in syllabus order is kept; later copies are deleted.
+    Student attempts on deleted rows are removed (CASCADE).
+    """
+    _require_admin(db, admin_id=admin_id, x_admin_id=x_admin_id)
+
+    ordered = sorted(
+        db.query(Question).all(),
+        key=question_syllabus_sort_key,
+    )
+    keep_ids, delete_ids = _plan_question_dedupe_by_stem(ordered)
+
+    if not confirm:
+        return {
+            "dry_run": True,
+            "would_delete_count": len(delete_ids),
+            "would_delete_ids": delete_ids,
+            "would_keep_count": len(keep_ids),
+        }
+
+    deleted = 0
+    for qid in delete_ids:
+        row = db.query(Question).filter(Question.id == qid).first()
+        if row:
+            db.delete(row)
+            deleted += 1
+    db.commit()
+    return {
+        "dry_run": False,
+        "deleted_count": deleted,
+        "kept_count": len(keep_ids),
+        "deleted_ids": delete_ids,
+    }
 
 
 @router.get("/questions/export/pdf")
