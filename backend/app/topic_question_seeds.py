@@ -13,251 +13,140 @@ from .question_content import build_problem_content
 
 QUESTIONS_PER_TOPIC = 5
 
-# Each topic row uses a distinct mix of canonical keys to limit copy-paste parity across the PDF/syllabus.
-_TOPIC_SEEDS: list[tuple[str, str, list[str]]] = [
-    (
-        "Phase 1 — Foundation",
-        "Introduction to C",
-        [
-            "print hello world",
-            "add two numbers",
-            "print name and city",
-            "read name and age greeting",
-            "swap two numbers",
-        ],
-    ),
-    (
-        "Phase 1 — Foundation",
-        "Structure of a C Program",
-        [
-            "read float decimal places",
-            "read character ascii",
-            "student record variables",
-            "print data type sizes lab",
-            "print simple box border",
-        ],
-    ),
-    (
-        "Phase 1 — Foundation",
-        "Keywords and Identifiers",
-        [
-            "add two numbers",
-            "swap two numbers",
-            "check even/odd",
-            "find largest of 3 numbers",
-            "grade calculator",
-        ],
-    ),
-    (
-        "Phase 1 — Foundation",
-        "Variables",
-        [
-            "swap two numbers",
-            "read name and age greeting",
-            "read float decimal places",
-            "read character ascii",
-            "print name and city",
-        ],
-    ),
-    (
-        "Phase 1 — Foundation",
-        "Data Types",
-        [
-            "read character ascii",
-            "read float decimal places",
-            "add two numbers",
-            "check even/odd",
-            "print hello world",
-        ],
-    ),
-    (
-        "Phase 1 — Foundation",
-        "Constants",
-        [
-            "print hello world",
-            "add two numbers",
-            "read character ascii",
-            "read float decimal places",
-            "print name and city",
-        ],
-    ),
-    (
-        "Phase 1 — Foundation",
-        "Header Files",
-        [
-            "print data type sizes lab",
-            "print hello world",
-            "add two numbers",
-            "print simple box border",
-            "pattern printing",
-        ],
-    ),
-    (
-        "Phase 1 — Foundation",
-        "Input and Output (printf, scanf)",
-        [
-            "print name and city",
-            "read float decimal places",
-            "read name and age greeting",
-            "add two numbers",
-            "read character ascii",
-        ],
-    ),
-    (
-        "Phase 1 — Foundation",
-        "Compilation process",
-        [
-            "print hello world",
-            "add two numbers",
-            "print simple box border",
-            "student record variables",
-            "pattern printing",
-        ],
-    ),
-    (
-        "Phase 2 — Logic Building & Flow Control",
-        "Arithmetic, Relational, Logical, Assignment",
-        [
-            "check even/odd",
-            "find largest of 3 numbers",
-            "add two numbers",
-            "simple interest",
-            "print multiplication table",
-        ],
-    ),
-    (
-        "Phase 2 — Logic Building & Flow Control",
-        "Increment and Decrement operators",
-        [
-            "print multiplication table",
-            "read until zero sum",
-            "break on negative sum",
-            "prime check",
-            "add two numbers",
-        ],
-    ),
-    (
-        "Phase 2 — Logic Building & Flow Control",
-        "Conditional Statements (if, else, switch)",
-        [
-            "grade calculator",
-            "day of week switch",
-            "check even/odd",
-            "find largest of 3 numbers",
-            "leap year",
-        ],
-    ),
-    (
-        "Phase 2 — Logic Building & Flow Control",
-        "Loops (for, while, do-while)",
-        [
-            "print multiplication table",
-            "read until zero sum",
-            "factorial of number",
-            "fibonacci series",
-            "find largest of 3 numbers",
-        ],
-    ),
-    (
-        "Phase 2 — Logic Building & Flow Control",
-        "Jump statements (break, continue, goto)",
-        [
-            "break on negative sum",
-            "read until zero sum",
-            "print multiplication table",
-            "check even/odd",
-            "simple interest",
-        ],
-    ),
-    (
-        "Phase 3 — Functions",
-        "Function declaration, definition, and call",
-        [
-            "factorial using function",
-            "factorial of number",
-            "is even function loop",
-            "fibonacci series",
-            "sum using recursion",
-        ],
-    ),
-    (
-        "Phase 3 — Functions",
-        "Call by value and call by reference",
-        [
-            "swap using pointers",
+# --- Duplicate policy (110 questions = 22 topics × 5) ---
+# • 18 “foundation” canonical problems appear exactly ONCE in the whole bank.
+# • The other 46 templates each appear exactly TWICE (92 slots) — repeats are mid+ drills, not Hello World / Add Two Numbers.
+# • Four topics use only “double pool” problems (compilation capstone + heavy practice).
+
+_SINGLETON_KEYS: frozenset = frozenset(
+    {
+        "print hello world",
+        "add two numbers",
+        "swap two numbers",
+        "read character ascii",
+        "read float decimal places",
+        "print name and city",
+        "read name and age greeting",
+        "check even/odd",
+        "find largest of 3 numbers",
+        "print multiplication table",
+        "read until zero sum",
+        "print data type sizes lab",
+        "print simple box border",
+        "student record variables",
+        "pattern printing",
+        "grade calculator",
+        "day of week switch",
+        "leap year",
+    }
+)
+
+# Sorted complement: every other template in `question_content` (each used twice).
+_REPEAT_KEYS: tuple[str, ...] = tuple(
+    sorted(
+        {
             "access array using pointer",
-            "factorial using function",
-            "gcd euclidean",
-            "lcm using gcd",
-        ],
-    ),
-    (
-        "Phase 3 — Functions",
-        "Using functions for primes, powers, factorial, gcd, lcm",
-        [
-            "print primes in range",
-            "prime check",
             "armstrong number check",
-            "gcd euclidean",
-            "lcm using gcd",
-        ],
-    ),
-    (
-        "Phase 4 — Data Collections",
-        "One-dimensional arrays",
-        [
-            "find sum of array",
-            "largest element",
-            "linear search array",
             "array reverse print",
-            "max min average array",
-        ],
-    ),
-    (
-        "Phase 4 — Data Collections",
-        "Two-dimensional arrays (matrices)",
-        [
-            "matrix print 3x3",
-            "matrix row column sums",
-            "matrix addition",
-            "matrix transpose",
-            "symmetric matrix check",
-        ],
-    ),
-    (
-        "Phase 4 — Data Collections",
-        "Strings basics and manipulation",
-        [
-            "string length manual",
-            "reverse a string",
-            "count vowels consonants spaces",
+            "bubble sort array",
+            "break on negative sum",
+            "calculator switch menu",
             "check palindrome",
             "concatenate without strcat",
-        ],
-    ),
-    (
-        "Phase 5 — Problem Practice",
-        "Mixed array, matrix, string, and number-theory drills",
-        [
-            "bubble sort array",
-            "pascal triangle rows",
-            "palindrome number",
-            "strong number check",
+            "copy file",
+            "count above average",
+            "count vowels",
             "count vowels consonants spaces",
-        ],
-    ),
-    (
-        "Phase 5 — Problem Practice",
-        "Patterns, sorts, palindromes, gcd/lcm bundles",
-        [
+            "employee details",
             "equilateral star pattern",
+            "factorial of number",
+            "factorial using function",
+            "fibonacci series",
+            "find sum of array",
             "floyd triangle pattern",
-            "pattern printing",
+            "gcd euclidean",
+            "is even function loop",
+            "largest element",
+            "lcm using gcd",
+            "linear search array",
+            "matrix addition",
             "matrix print 3x3",
-            "concatenate without strcat",
-        ],
-    ),
-]
+            "matrix row column sums",
+            "matrix transpose",
+            "max min average array",
+            "palindrome number",
+            "pascal triangle rows",
+            "pointer to pointer",
+            "prime check",
+            "print primes in range",
+            "product inventory record",
+            "read file content",
+            "reverse a string",
+            "second largest array",
+            "simple interest",
+            "string length manual",
+            "strong number check",
+            "student record system",
+            "sum using recursion",
+            "swap using pointers",
+            "symmetric matrix check",
+            "write data to file",
+        }
+    )
+)
+
+assert len(_SINGLETON_KEYS) + len(_REPEAT_KEYS) == 64, "must match question_content template count"
+assert len(_SINGLETON_KEYS) == 18 and len(_REPEAT_KEYS) == 46
+
+# (module, topic, singleton key or None if all five come from the repeat pool)
+_SYLLABUS_ROWS: tuple[tuple[str, str, str | None], ...] = (
+    ("Phase 1 — Foundation", "Introduction to C", "print hello world"),
+    ("Phase 1 — Foundation", "Structure of a C Program", "read float decimal places"),
+    ("Phase 1 — Foundation", "Keywords and Identifiers", "check even/odd"),
+    ("Phase 1 — Foundation", "Variables", "swap two numbers"),
+    ("Phase 1 — Foundation", "Data Types", "read character ascii"),
+    ("Phase 1 — Foundation", "Constants", "add two numbers"),
+    ("Phase 1 — Foundation", "Header Files", "print data type sizes lab"),
+    ("Phase 1 — Foundation", "Input and Output (printf, scanf)", "print name and city"),
+    ("Phase 1 — Foundation", "Compilation process", None),
+    ("Phase 2 — Logic Building & Flow Control", "Arithmetic, Relational, Logical, Assignment", "find largest of 3 numbers"),
+    ("Phase 2 — Logic Building & Flow Control", "Increment and Decrement operators", "read until zero sum"),
+    ("Phase 2 — Logic Building & Flow Control", "Conditional Statements (if, else, switch)", "grade calculator"),
+    ("Phase 2 — Logic Building & Flow Control", "Loops (for, while, do-while)", "print multiplication table"),
+    ("Phase 2 — Logic Building & Flow Control", "Jump statements (break, continue, goto)", "leap year"),
+    ("Phase 3 — Functions", "Function declaration, definition, and call", "read name and age greeting"),
+    ("Phase 3 — Functions", "Call by value and call by reference", "student record variables"),
+    ("Phase 3 — Functions", "Using functions for primes, powers, factorial, gcd, lcm", "day of week switch"),
+    ("Phase 4 — Data Collections", "One-dimensional arrays", "print simple box border"),
+    ("Phase 4 — Data Collections", "Two-dimensional arrays (matrices)", None),
+    ("Phase 4 — Data Collections", "Strings basics and manipulation", "pattern printing"),
+    ("Phase 5 — Problem Practice", "Mixed array, matrix, string, and number-theory drills", None),
+    ("Phase 5 — Problem Practice", "Patterns, sorts, palindromes, gcd/lcm bundles", None),
+)
+
+
+def _build_topic_seeds() -> list[tuple[str, str, list[str]]]:
+    repeat_queue: list[str] = list(_REPEAT_KEYS) + list(_REPEAT_KEYS)
+    qi = 0
+    out: list[tuple[str, str, list[str]]] = []
+    for module, topic, single in _SYLLABUS_ROWS:
+        row: list[str] = []
+        if single is not None:
+            if single not in _SINGLETON_KEYS:
+                raise ValueError(f"unknown singleton {single}")
+            row.append(single)
+            take = QUESTIONS_PER_TOPIC - 1
+        else:
+            take = QUESTIONS_PER_TOPIC
+        for _ in range(take):
+            row.append(repeat_queue[qi])
+            qi += 1
+        out.append((module, topic, row))
+    assert qi == len(repeat_queue), "repeat queue mismatch"
+    return out
+
+
+_TOPIC_SEEDS: list[tuple[str, str, list[str]]] = _build_topic_seeds()
 
 
 def parse_topic_from_full_title(module: str, title: str) -> str | None:
