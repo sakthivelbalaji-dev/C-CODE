@@ -1099,7 +1099,7 @@ function QuestionPage() {
         <article
           className={`scrollbar-workspace ${panelClass} lg:max-h-[calc(100dvh-5.25rem)] lg:overflow-y-auto lg:pr-1`}
         >
-          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div className="mb-5 flex flex-wrap items-center gap-3">
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-brand-neonBlue/15 px-3.5 py-1.5 text-xs font-medium capitalize tracking-wide text-brand-neonBlue ring-1 ring-brand-neonBlue/25">
                 {difficulty}
@@ -1120,15 +1120,6 @@ function QuestionPage() {
                 </span>
               )}
             </div>
-            <select
-              value={difficulty}
-              onChange={(event) => setDifficulty(event.target.value)}
-              className="rounded-lg border border-brand-line/70 bg-brand-surface/90 px-3 py-2 text-sm capitalize text-brand-text shadow-inner outline-none transition focus:border-brand-neonBlue focus:ring-1 focus:ring-brand-neonBlue/40"
-            >
-              <option value="easy">Easy</option>
-              <option value="medium">Medium</option>
-              <option value="tough">Tough</option>
-            </select>
           </div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-muted">Problem</p>
           <h1 className="mt-1.5 text-balance text-xl font-semibold leading-snug tracking-tight text-brand-text md:text-[1.35rem]">
