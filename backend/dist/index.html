@@ -379,7 +379,8 @@
 
         /**
          * Never removes the DOM chip — keeps “Time left” visible.
-         * Coding view: pill in workspace header beside C (C11). Auth / unknown: fallback dock (top-right).
+         * Coding view: pill fixed beside C (C11) (body host + getBoundingClientRect) so it does not scroll with the problem panel.
+         * Auth / unknown: fallback dock (top-right).
          */
         function ensureTimerChipPlaced() {
           var dock = document.getElementById("__ccodelab_timer_dock");
@@ -393,18 +394,19 @@
             return true;
           }
 
-          var row = editorHeaderActionsRow();
-          if (row) {
-            clearPillFloatingLayout();
-            insertTimerPillBeforeLanguageRow(row, pillHost);
-            return true;
-          }
-
+          /* Prefer fixed layout when the language badge exists: in-flow placement in the header row scrolls away with the workspace column. */
           var lang = findLanguageBadgeSpan();
           if (lang && hasMonacoEditor()) {
             if (pillHost.parentNode !== document.body) document.body.appendChild(pillHost);
             bindLanguageAnchoredReposition();
             positionTimerLeftOfLanguageEl(lang);
+            return true;
+          }
+
+          var row = editorHeaderActionsRow();
+          if (row) {
+            clearPillFloatingLayout();
+            insertTimerPillBeforeLanguageRow(row, pillHost);
             return true;
           }
 

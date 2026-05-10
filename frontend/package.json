@@ -1,0 +1,12 @@
+{
+  "name": "c-code-lab-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "description": "This workspace ships a prebuilt SPA in backend/dist. The build step applies the Next-button patch to the bundle.",
+  "scripts": {
+    "build": "node ../scripts/patch-next-button.mjs",
+    "dev": "echo Frontend source is not in this copy of the repo. Serve backend/dist with FastAPI or any static host. && exit 1",
+    "lint": "echo No ESLint config in minimal stub. && exit 0",
+    "preview": "echo Use backend static or: npx vite preview (needs full app source). && exit 1"
+  }
+}
