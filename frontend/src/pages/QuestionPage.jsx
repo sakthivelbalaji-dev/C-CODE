@@ -1199,29 +1199,6 @@ function QuestionPage() {
             />
           </div>
 
-          <div className="flex items-center justify-center gap-4 pt-3">
-            <button
-              type="button"
-              disabled={isProcessing || prevLoading || nextLoading || !question?.id}
-              aria-label="Previous question in syllabus order"
-              title="Previous question in syllabus order"
-              onClick={() => void handlePrevSyllabusClick()}
-              className="min-w-[2.85rem] rounded-xl bg-violet-500 px-3 py-2.5 text-lg font-bold tabular-nums leading-none text-white shadow-[0_0_20px_-4px_rgba(139,92,246,0.45)] transition hover:brightness-110 disabled:opacity-50"
-            >
-              {prevLoading ? '…' : '<'}
-            </button>
-            <button
-              type="button"
-              disabled={isProcessing || nextLoading || prevLoading || !question?.id}
-              aria-label="Next question in syllabus order"
-              title="Next question in syllabus order (may skip questions you already solved when signed in)"
-              onClick={() => void handleNextSyllabusClick()}
-              className="min-w-[2.85rem] rounded-xl bg-amber-500 px-3 py-2.5 text-lg font-bold tabular-nums leading-none text-slate-900 shadow-[0_0_20px_-4px_rgba(245,158,11,0.55)] transition hover:brightness-110 disabled:opacity-50"
-            >
-              {nextLoading ? '…' : '>'}
-            </button>
-          </div>
-
           <div className="space-y-4">
             <label className="block">
               <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-brand-muted">
@@ -1270,6 +1247,24 @@ function QuestionPage() {
               className="rounded-xl bg-brand-neonGreen px-5 py-2.5 text-sm font-semibold text-slate-900 shadow-[0_0_20px_-4px_rgba(34,197,94,0.55)] transition hover:brightness-110 disabled:opacity-50"
             >
               Submit
+            </button>
+            <button
+              type="button"
+              disabled={isProcessing || prevLoading || nextLoading || !question?.id}
+              title="Go to the previous question in syllabus order"
+              onClick={() => void handlePrevSyllabusClick()}
+              className="rounded-xl bg-violet-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_0_20px_-4px_rgba(139,92,246,0.45)] transition hover:brightness-110 disabled:opacity-50"
+            >
+              {prevLoading ? '…' : 'Previous'}
+            </button>
+            <button
+              type="button"
+              disabled={isProcessing || nextLoading || prevLoading || !question?.id}
+              title="Go to the next question in syllabus order (skips questions you already solved when signed in)"
+              onClick={() => void handleNextSyllabusClick()}
+              className="rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-semibold text-slate-900 shadow-[0_0_20px_-4px_rgba(245,158,11,0.55)] transition hover:brightness-110 disabled:opacity-50"
+            >
+              {nextLoading ? '…' : 'Next'}
             </button>
           </div>
         </article>
