@@ -15,10 +15,38 @@ _EXAMPLE_ALIASES: dict[str, str] = {
     "iseven function loop": "is even function loop",
 }
 
+# Stable template keys ↔ student-facing titles. Values must stay unique lowercase for reverse lookup.
+_CANONICAL_PROBLEM_DISPLAY_TITLES: dict[str, str] = {
+    "is even function loop": "Is Even Function Loop",
+    "read character ascii": "Read Character ASCII",
+    "copy file": "Echo Input Line",
+    "read file content": "Print Input Text",
+    "write data to file": "Echo Line to Stdout",
+}
+
+_DISPLAY_TITLE_LOWER_TO_TEMPLATE_KEY: dict[str, str] = {
+    v.lower(): k for k, v in _CANONICAL_PROBLEM_DISPLAY_TITLES.items()
+}
+
+
+def resolve_template_key(example_or_key: str) -> str:
+    """Normalize any syllabus/seed style label to the canonical template dict key (lowercase)."""
+    k = example_or_key.strip().lower()
+    k = _EXAMPLE_ALIASES.get(k, k)
+    k = _DISPLAY_TITLE_LOWER_TO_TEMPLATE_KEY.get(k, k)
+    return k
+
+
+def problem_display_title(canonical_template_key: str) -> str:
+    """Title shown in question titles and descriptions (not implied to be a filesystem task)."""
+    k = canonical_template_key.strip().lower()
+    if k in _CANONICAL_PROBLEM_DISPLAY_TITLES:
+        return _CANONICAL_PROBLEM_DISPLAY_TITLES[k]
+    return k.replace("_", " ").strip().title()
+
 
 def build_problem_content(module_name: str, topic: str, example: str) -> dict:
-    key = example.strip().lower()
-    key = _EXAMPLE_ALIASES.get(key, key)
+    key = resolve_template_key(example)
 
     templates = {
         "print hello world": _make_template(
@@ -253,8 +281,10 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
             sample_input="hello",
             expected_output="hello",
             constraints="1 <= length <= 1000",
-            input_format="A single line of text (stdin).",
-            output_format="Print the same line (I/O drill — using fopen/fwrite is optional; stdin echo matches the checker).",
+            input_format="A single line of text from stdin.",
+            output_format=(
+                "Print exactly that line. The checker only compares stdin-to-stdout copies (no fopen / disk file required)."
+            ),
             examples=[{"input": "hello", "output": "hello"}, {"input": "c lab", "output": "c lab"}],
             tests=[{"input": "abc", "output": "abc"}, {"input": "123", "output": "123"}, {"input": "file data", "output": "file data"}],
         ),
@@ -262,8 +292,10 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
             sample_input="sample content",
             expected_output="sample content",
             constraints="1 <= length <= 1000",
-            input_format="A single line of text (stdin).",
-            output_format="Print that line unchanged (same as reading text into a buffer and printing it).",
+            input_format="A single line of text from stdin.",
+            output_format=(
+                "Print exactly that line. Graded as a stdio line echo — not an on-disk file read."
+            ),
             examples=[{"input": "sample content", "output": "sample content"}, {"input": "line", "output": "line"}],
             tests=[{"input": "x", "output": "x"}, {"input": "read me", "output": "read me"}, {"input": "42", "output": "42"}],
         ),
@@ -271,8 +303,10 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
             sample_input="one line of text",
             expected_output="one line of text",
             constraints="1 <= length <= 1000",
-            input_format="A single line of text (stdin).",
-            output_format="Print the same line (stdin echo — no file APIs required).",
+            input_format="A single line of text from stdin.",
+            output_format=(
+                "Print exactly that line. Graded as stdin echo only (not a byte-for-byte file copy)."
+            ),
             examples=[{"input": "hello", "output": "hello"}, {"input": "abc xyz", "output": "abc xyz"}],
             tests=[{"input": "mno", "output": "mno"}, {"input": "data", "output": "data"}, {"input": "done", "output": "done"}],
         ),
@@ -797,9 +831,10 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
 
     _apply_student_layer(template, key)
 
+    label = problem_display_title(key)
     template["description"] = (
         f"Solve a {module_name.lower()} coding task focused on '{topic}'.\n"
-        f"Problem style: {example}. Read input from stdin and print exact output."
+        f"Problem style: {label}. Read input from stdin and print exact output."
     )
     return template
 

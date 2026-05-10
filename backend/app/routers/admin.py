@@ -33,6 +33,35 @@ def _require_admin(
     return user
 
 
+def _normalize_pdf_newlines(text: str | None) -> str:
+    if text is None:
+        return ""
+    return str(text).replace("\r\n", "\n").replace("\r", "\n")
+
+
+def _pdf_io_needs_monospace_block(text: str | None) -> bool:
+    """
+    Pyramid / grid outputs must not use proportional fonts — spaces shrink next to '*' and ruin centering.
+    Use monospace plus NBSP (see draw_line) whenever layout depends on spacing.
+    """
+    if text is None:
+        return False
+    s = _normalize_pdf_newlines(text)
+    if not s:
+        return False
+    if "\n" in s:
+        return True
+    if s.startswith((" ", "\t")):
+        return True
+    if "*" in s and " " in s:
+        return True
+    if "#" in s and " " in s:
+        return True
+    if "  " in s:
+        return True
+    return False
+
+
 def _pdf_question_line_title(full_title: str, catalog_index: int) -> str:
     """
     Replace the Q number in stored titles so the PDF lists Q1…Qn in export order
@@ -251,11 +280,9 @@ def export_questions_pdf(
     ) -> None:
         nonlocal y
         safe_full = (text or "").replace("\t", "    ")
-        # PDF viewers often collapse regular U+0020 spaces; NBSP keeps pattern columns aligned.
+        # Proportional fonts + U+0020 often look wrong beside '*'; monospace + NBSP keeps pyramids centered.
         if monospace:
-            safe_full = "\n".join(
-                line.replace(" ", "\u00a0") for line in safe_full.split("\n")
-            )
+            safe_full = safe_full.replace(" ", "\u00a0")
         for segment in safe_full.split("\n"):
             _draw_wrapped_segment(segment, bold=bold, indent=indent, monospace=monospace)
 
@@ -305,18 +332,24 @@ def export_questions_pdf(
         draw_line(f"Constraints: {item.get('constraints') or '-'}")
         _si = item.get("sample_input")
         _eo = item.get("expected_output")
-        _si_s = str(_si) if _si is not None else ""
-        if _si is not None and ("\n" in _si_s or _si_s.startswith(" ")):
-            draw_line("Sample Input:", bold=True)
-            draw_line(_si_s, monospace=True)
+        if _si is None:
+            draw_line("Sample Input: -")
         else:
-            draw_line(f"Sample Input: {_si if _si is not None else '-'}")
-        _eo_s = str(_eo) if _eo is not None else ""
-        if _eo is not None and ("\n" in _eo_s or _eo_s.startswith(" ")):
-            draw_line("Expected Output (sample):", bold=True)
-            draw_line(_eo_s, monospace=True)
+            _si_s = _normalize_pdf_newlines(_si)
+            if _pdf_io_needs_monospace_block(_si_s):
+                draw_line("Sample Input:", bold=True)
+                draw_line(_si_s, monospace=True)
+            else:
+                draw_line(f"Sample Input: {_si_s}")
+        if _eo is None:
+            draw_line("Expected Output: -")
         else:
-            draw_line(f"Expected Output: {_eo if _eo is not None else '-'}")
+            _eo_s = _normalize_pdf_newlines(_eo)
+            if _pdf_io_needs_monospace_block(_eo_s):
+                draw_line("Expected Output (sample):", bold=True)
+                draw_line(_eo_s, monospace=True)
+            else:
+                draw_line(f"Expected Output: {_eo_s}")
         tc_list = item.get("test_cases") or []
         draw_line(f"Judge test case count: {item.get('test_case_count') or len(tc_list)}")
         if isinstance(tc_list, list) and tc_list:
@@ -327,13 +360,20 @@ def export_questions_pdf(
                 hidden = bool(case.get("is_hidden"))
                 vis = "hidden" if hidden else "public"
                 draw_line(f"Case {ci} ({vis})", bold=True, indent=12)
-                tin = str(case.get("input", "") or "")
-                tout = str(case.get("output", "") or "")
+                tin = _normalize_pdf_newlines(str(case.get("input", "") or ""))
+                tout = _normalize_pdf_newlines(str(case.get("output", "") or ""))
                 draw_line("Input:", bold=True, indent=20)
-                # Do not .strip() multiline I/O — leading spaces matter for patterns; monospace preserves alignment.
-                draw_line("(empty)" if tin == "" else tin, indent=24, monospace=True)
+                draw_line(
+                    "(empty)" if tin == "" else tin,
+                    indent=24,
+                    monospace=_pdf_io_needs_monospace_block(tin),
+                )
                 draw_line("Expected output:", bold=True, indent=20)
-                draw_line("(empty)" if tout == "" else tout, indent=24, monospace=True)
+                draw_line(
+                    "(empty)" if tout == "" else tout,
+                    indent=24,
+                    monospace=_pdf_io_needs_monospace_block(tout),
+                )
         draw_line()
 
     pdf.save()

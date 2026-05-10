@@ -9,7 +9,7 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from .models import Attempt, Question
-from .question_content import build_problem_content
+from .question_content import build_problem_content, problem_display_title
 
 QUESTIONS_PER_TOPIC = 5
 
@@ -93,23 +93,25 @@ _REPEAT_KEYS: frozenset[str] = frozenset(
     }
 )
 
-# Pedagogical stream order (two concatenated copies supply 92 repeat pulls). This keeps
-# intro I/O problems approachable, moves pointer/array drills to suitable phases, and avoids
-# number-theory topics under “Compilation process”.
+# Pedagogical stream order (two concatenated copies supply 92 repeat pulls).
+# First-appearance topics are dictated by syllabus row order × this sequence; swaps below
+# deliberately move a few drills out of mismatched headings (e.g. pointer-to-pointer away
+# from Variables, bubble sort nearer array/logic phases, pointer traversal with Structure’s
+# early array drills—not Introduction/Constants caps).
 _PEDAGOGICAL_REPEAT_ORDER: tuple[str, ...] = (
     "simple interest",
     "is even function loop",
     "count vowels",
     "linear search array",
     "array reverse print",
-    "find sum of array",
+    "access array using pointer",
     "largest element",
     "max min average array",
     "gcd euclidean",
     "lcm using gcd",
     "factorial of number",
     "factorial using function",
-    "pointer to pointer",
+    "count vowels consonants spaces",
     "swap using pointers",
     "fibonacci series",
     "sum using recursion",
@@ -118,9 +120,9 @@ _PEDAGOGICAL_REPEAT_ORDER: tuple[str, ...] = (
     "floyd triangle pattern",
     "pascal triangle rows",
     "equilateral star pattern",
-    "bubble sort array",
+    "prime check",
     "second largest array",
-    "access array using pointer",
+    "find sum of array",
     "matrix print 3x3",
     "matrix addition",
     "matrix transpose",
@@ -134,13 +136,13 @@ _PEDAGOGICAL_REPEAT_ORDER: tuple[str, ...] = (
     "employee details",
     "product inventory record",
     "read file content",
-    "prime check",
+    "bubble sort array",
     "print primes in range",
     "student record system",
     "strong number check",
     "symmetric matrix check",
     "count above average",
-    "count vowels consonants spaces",
+    "pointer to pointer",
     "copy file",
     "write data to file",
 )
@@ -225,14 +227,6 @@ def topic_order_index(module: str, topic: str) -> int:
     return 9999
 
 
-_DISPLAY_TITLE_OVERRIDES: dict[str, str] = {
-    "is even function loop": "Is Even Function Loop",
-    "iseven function loop": "Is Even Function Loop",
-    "read character ascii": "Read Character ASCII",
-    "copy file": "Echo Input Line",
-    "read file content": "Print Input Text",
-}
-
 # Marked easy even when a later phase reuses a simple drill.
 _EASY_PROBLEM_KEYS: frozenset = frozenset(
     {
@@ -278,13 +272,6 @@ _MEDIUM_ALWAYS_KEYS: frozenset[str] = frozenset(
 )
 
 
-def _display_name(canonical_key: str) -> str:
-    low = canonical_key.strip().lower()
-    if low in _DISPLAY_TITLE_OVERRIDES:
-        return _DISPLAY_TITLE_OVERRIDES[low]
-    return canonical_key.replace("_", " ").strip().title()
-
-
 def _build_title(module: str, topic: str, display: str, *, catalog_q: int) -> str:
     """Catalog numbers Q1…Qn run in syllabus order across all topics (not per-topic Q1–Q5)."""
     return f"{module} — {topic} — Q{catalog_q}: {display}"
@@ -302,8 +289,9 @@ def _difficulty_for_problem(module: str, canonical_key: str) -> str:
 
 
 def _payload(module: str, topic: str, q_index: int, canonical_key: str, *, catalog_q: int) -> dict:
-    display = _display_name(canonical_key)
-    content = build_problem_content(module, topic, display)
+    k = canonical_key.strip().lower()
+    display = problem_display_title(k)
+    content = build_problem_content(module, topic, k)
     return {
         "title": _build_title(module, topic, display, catalog_q=catalog_q),
         "description": content["description"],

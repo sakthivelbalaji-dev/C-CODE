@@ -131,19 +131,19 @@ STUDENT_METADATA: dict[str, dict[str, str]] = {
         "functions": "`%s %d` scans; deterministic printing.",
     },
     "write data to file": {
-        "constraints": "Single textual line echoed (simulates file write).",
-        "algorithm": "Read line; identical print for judge simulation.",
-        "functions": "`fgets`/`scanf` `%[^\n]`; `printf`; real `fopen` optional.",
+        "constraints": "One text line from stdin; output must match exactly (judge is stdio-only).",
+        "algorithm": "Read the line; print the same bytes/order of characters to stdout.",
+        "functions": "`fgets`/line `scanf` plus `printf`; no `fopen`/`fwrite` needed for the grader.",
     },
     "read file content": {
-        "constraints": "One line of text from stdin; the task is stdout passthrough (no real file is required).",
+        "constraints": "One line from stdin; print it back — not a path or `FILE*` read in the checker.",
         "algorithm": "Read the line and print it unchanged.",
-        "functions": "`fgets`/`scanf` line read; `printf` the buffer.",
+        "functions": "Line read + `printf`; treat it as buffer I/O on stdin/stdout only.",
     },
     "copy file": {
-        "constraints": "One line from stdin — the exercise is stdout echo (no file APIs required).",
+        "constraints": "One line from stdin echoed to stdout; graded as text echo, not filesystem copy.",
         "algorithm": "Read the line and print it unchanged.",
-        "functions": "Same as stdin echo drills; optional `fopen` only if your course requires it.",
+        "functions": "Same as other one-line stdio drills — no `fopen`/`fread` required here.",
     },
     "print name and city": {
         "constraints": "Two lines of input: first the name, then the city (single word each, as in the samples).",

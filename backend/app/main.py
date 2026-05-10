@@ -133,7 +133,7 @@ def _dedupe_and_fill_syllabus_questions() -> None:
     """
     from .database import SessionLocal
     from .models import Attempt, Question
-    from .question_content import _EXAMPLE_ALIASES, build_problem_content
+    from .question_content import build_problem_content, resolve_template_key
     from .topic_question_seeds import (
         _difficulty_for_problem,
         parse_topic_from_full_title,
@@ -185,8 +185,7 @@ def _dedupe_and_fill_syllabus_questions() -> None:
                 question.test_cases_json = content.get("test_cases_json", question.test_cases_json)
                 question.algorithm_hint = content.get("algorithm_hint", question.algorithm_hint)
                 question.functions_hint = content.get("functions_hint", question.functions_hint)
-                key = example.strip().lower()
-                key = _EXAMPLE_ALIASES.get(key, key)
+                key = resolve_template_key(example)
                 question.difficulty = _difficulty_for_problem(question.module or "", key)
                 corrected += 1
             except Exception:

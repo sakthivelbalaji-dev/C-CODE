@@ -35,11 +35,11 @@ def main() -> None:
     backend = Path(__file__).resolve().parents[1]
     sys.path.insert(0, str(backend))
 
+    from app.question_content import problem_display_title  # noqa: E402
     from app.topic_question_seeds import (  # noqa: E402
         QUESTIONS_PER_TOPIC,
         _TOPIC_SEEDS,
         _difficulty_for_problem,
-        _display_name,
     )
 
     rows_html: list[str] = []
@@ -58,7 +58,7 @@ def main() -> None:
                 hard_n += 1
             marks = _marks_for(diff)
             syllabus_cell = html.escape(f"{module} — {topic}")
-            short_title = html.escape(_display_name(key))
+            short_title = html.escape(problem_display_title(key.strip().lower()))
             rows_html.append(
                 "<tr>"
                 f"<td>{catalog_q}</td>"
