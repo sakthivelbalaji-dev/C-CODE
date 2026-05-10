@@ -235,7 +235,7 @@ function QuestionPage() {
     if (question?.id == null) return
     expiryAutoSubmitFiredRef.current = true
     pendingExpirySubmitRef.current = false
-    setOutputConsole('Time limit reached — submitting your code and moving to the next syllabus question…')
+    setOutputConsole('Time limit reached — submitting your code for grading…')
     void runProcessRef.current('submit', { forceAfterTimeLimit: true })
   }
 
@@ -710,19 +710,9 @@ function QuestionPage() {
         }
         clearQuestionTimerStorage(mergedUser, question.id)
 
-        const nav = await advanceToSyllabusNextQuestion(question.id)
-        if (!nav.ok) {
-          expiryAutoSubmitFiredRef.current = false
-          setOutputConsole(
-            nav.noNext
-              ? 'Time limit reached — nothing to submit. Recorded as failed on your profile. You were on the last question in this syllabus.'
-              : 'Time limit reached — could not open the next question. Try again shortly.',
-          )
-        } else {
-          setOutputConsole(
-            'Time limit reached with an empty editor — recorded as a failed attempt on your profile (reattempt available). Moved you to the next syllabus question.',
-          )
-        }
+        setOutputConsole(
+          'Time limit reached with an empty editor — recorded as a failed attempt on your profile (reattempt available). Use the Next button when you want to go to the next question in syllabus order.',
+        )
         return
       }
       setOutputConsole('Editor is blank. Please write your code first.')
@@ -813,21 +803,6 @@ function QuestionPage() {
             ed.focus()
           }
         })
-        if (mode === 'submit' && options.forceAfterTimeLimit && question?.id) {
-          const nav = await advanceToSyllabusNextQuestion(question.id)
-          if (nav.ok) {
-            setOutputConsole((prev) => `${prev}\n\nTime limit — opening the next syllabus question.`)
-          } else if (nav.retryable) {
-            expiryAutoSubmitFiredRef.current = false
-            setOutputConsole((prev) =>
-              `${prev}\n\nTime limit — could not advance to the next question. You can retry from the console message above.`,
-            )
-          } else if (nav.noNext) {
-            setOutputConsole((prev) =>
-              `${prev}\n\nTime limit — submission failed to compile; that was also the last syllabus question.`,
-            )
-          }
-        }
         return
       }
 
@@ -880,7 +855,6 @@ function QuestionPage() {
       const allTestsPassed = totalCount > 0 && passedCount === totalCount
       const customOutputText = data.custom_output ? `\nCustom Output:\n${data.custom_output}` : ''
       if (mode === 'submit') {
-        let attemptData = null
         if (currentUser?.id && question?.id) {
           const payload = {
             student_id: currentUser.id,
@@ -898,8 +872,8 @@ function QuestionPage() {
             body: JSON.stringify(payload),
           })
           if (saveResponse.ok) {
-            attemptData = await saveResponse.json()
-            localStorage.setItem('ccodelab_latest_attempt', JSON.stringify(attemptData))
+            const attemptRecord = await saveResponse.json()
+            localStorage.setItem('ccodelab_latest_attempt', JSON.stringify(attemptRecord))
             if (allTestsPassed && question.id) {
               setSolvedQuestionIds((prev) => new Set([...prev, question.id]))
             }
@@ -908,70 +882,24 @@ function QuestionPage() {
         }
 
         if (options.forceAfterTimeLimit) {
-          const nav = await advanceToSyllabusNextQuestion(question.id)
-          if (nav.ok) {
+          if (!allTestsPassed) {
+            setShowTryAgainHint(true)
+          } else {
             setShowTryAgainHint(false)
-            setOutputConsole(
-              `${compilerEditorHint}Time limit reached — your last attempt was submitted automatically.\nPassed ${passedCount}/${totalCount} test cases.${customOutputText}\n\nOpening the next syllabus question.`,
-            )
-          } else if (nav.noNext) {
-            setShowTryAgainHint(false)
-            setOutputConsole(
-              `${compilerEditorHint}Time limit reached — your last attempt was submitted.\nPassed ${passedCount}/${totalCount} test cases.${customOutputText}\n\nThat was the final question in this syllabus order.`,
-            )
-          } else if (nav.retryable) {
-            expiryAutoSubmitFiredRef.current = false
-            setShowTryAgainHint(false)
-            setOutputConsole(
-              `${compilerEditorHint}Time limit reached — your last attempt was submitted.\nPassed ${passedCount}/${totalCount} test cases.${customOutputText}\n\nCould not load the next question; try again.`,
-            )
           }
+          setOutputConsole(
+            `${compilerEditorHint}Time limit reached — your last attempt was submitted automatically.\nPassed ${passedCount}/${totalCount} test cases.${customOutputText}\n\nStay on this question to review, or press Next to continue to the next question in syllabus order.`,
+          )
         } else if (!allTestsPassed) {
           setShowTryAgainHint(true)
           setOutputConsole(
             `${compilerEditorHint}Compilation successful.\nPassed ${passedCount}/${totalCount} test cases.${customOutputText}\n\nNot all tests passed — you stay on this question. Improve your solution and press Submit again; when you pass, your result and syllabus progress update.`,
           )
-        } else if (attemptData?.should_move_next && attemptData?.next_question_id) {
-          setShowTryAgainHint(false)
-          const nextQuestionResponse = await fetch(apiUrl(`/questions/${attemptData.next_question_id}`))
-          if (nextQuestionResponse.ok) {
-            const nextQuestion = await nextQuestionResponse.json()
-            setQuestion(nextQuestion)
-            if (nextQuestion.difficulty) {
-              setDifficulty(nextQuestion.difficulty)
-            }
-            if (currentUser?.id) {
-              const nextDraftKey = `ccodelab_draft_${currentUser.id}_${nextQuestion.id}`
-              setCode(localStorage.getItem(nextDraftKey) ?? '')
-            } else {
-              setCode('')
-            }
-            setCustomInput('')
-            setOutputConsole(
-              `${compilerEditorHint}Compilation successful.\nPassed ${passedCount}/${totalCount} test cases.${customOutputText}\n\nLoading next question...`,
-            )
-          } else {
-            setOutputConsole(
-              `${compilerEditorHint}Compilation successful.\nPassed ${passedCount}/${totalCount} test cases.${customOutputText}\n\nNext question could not be loaded.`,
-            )
-          }
         } else {
           setShowTryAgainHint(false)
-          const hasNextQuestion = currentQuestionIndex < questionList.length - 1
-          if (hasNextQuestion) {
-            const nextIndex = currentQuestionIndex + 1
-            setCurrentQuestionIndex(nextIndex)
-            setQuestion(questionList[nextIndex])
-            setCode('')
-            setCustomInput('')
-            setOutputConsole(
-              `${compilerEditorHint}Compilation successful.\nPassed ${passedCount}/${totalCount} test cases.${customOutputText}\n\nLoading next question...`,
-            )
-          } else {
-            setOutputConsole(
-              `${compilerEditorHint}Compilation successful.\nPassed ${passedCount}/${totalCount} test cases.${customOutputText}\n\nYou completed all available questions.`,
-            )
-          }
+          setOutputConsole(
+            `${compilerEditorHint}Compilation successful.\nPassed ${passedCount}/${totalCount} test cases.${customOutputText}\n\nAll tests passed — your attempt was saved. Use Next when you are ready to open the following question in syllabus order.`,
+          )
         }
       } else {
         setOutputConsole(
@@ -1313,7 +1241,7 @@ function QuestionPage() {
                   ? 'Press Start before submitting'
                   : timerExpiredForGrade
                     ? 'Time limit ended — graded submit ran automatically'
-                    : 'Submit for graded test cases (also runs automatically when time runs out)'
+                    : 'Submit for graded test cases only (timer expiry also submits; use Next to change question)'
               }
               onClick={() => runProcess('submit')}
               className="rounded-xl bg-brand-neonGreen px-5 py-2.5 text-sm font-semibold text-slate-900 shadow-[0_0_20px_-4px_rgba(34,197,94,0.55)] transition hover:brightness-110 disabled:opacity-50"
@@ -1323,20 +1251,22 @@ function QuestionPage() {
             <button
               type="button"
               disabled={isProcessing || prevLoading || nextLoading || !question?.id}
-              title="Go to the previous question in syllabus order"
+              aria-label="Previous question in syllabus order"
+              title="Previous question in syllabus order"
               onClick={() => void handlePrevSyllabusClick()}
-              className="rounded-xl bg-violet-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_0_20px_-4px_rgba(139,92,246,0.45)] transition hover:brightness-110 disabled:opacity-50"
+              className="min-w-[2.85rem] rounded-xl bg-violet-500 px-3 py-2.5 text-lg font-bold tabular-nums leading-none text-white shadow-[0_0_20px_-4px_rgba(139,92,246,0.45)] transition hover:brightness-110 disabled:opacity-50"
             >
-              {prevLoading ? '…' : 'Previous'}
+              {prevLoading ? '…' : '<'}
             </button>
             <button
               type="button"
               disabled={isProcessing || nextLoading || prevLoading || !question?.id}
-              title="Go to the next question in syllabus order (skips questions you already solved when signed in)"
+              aria-label="Next question in syllabus order"
+              title="Next question in syllabus order (may skip questions you already solved when signed in)"
               onClick={() => void handleNextSyllabusClick()}
-              className="rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-semibold text-slate-900 shadow-[0_0_20px_-4px_rgba(245,158,11,0.55)] transition hover:brightness-110 disabled:opacity-50"
+              className="min-w-[2.85rem] rounded-xl bg-amber-500 px-3 py-2.5 text-lg font-bold tabular-nums leading-none text-slate-900 shadow-[0_0_20px_-4px_rgba(245,158,11,0.55)] transition hover:brightness-110 disabled:opacity-50"
             >
-              {nextLoading ? '…' : 'Next'}
+              {nextLoading ? '…' : '>'}
             </button>
           </div>
         </article>

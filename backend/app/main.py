@@ -138,13 +138,17 @@ def _dedupe_and_fill_syllabus_questions() -> None:
         _difficulty_for_problem,
         parse_topic_from_full_title,
         seed_topic_questions_into_db,
+        syllabus_row_semantic_key,
     )
 
     db = SessionLocal()
     try:
-        added = seed_topic_questions_into_db(db, reset=False)
-        if added:
-            logger.info("Added %d missing syllabus question(s).", added)
+        if os.getenv("AUTO_FILL_SYLLABUS_GAPS", "1").strip().lower() in ("0", "false", "no"):
+            logger.info("AUTO_FILL_SYLLABUS_GAPS is off; skip inserting missing seed rows on startup.")
+        else:
+            added = seed_topic_questions_into_db(db, reset=False)
+            if added:
+                logger.info("Added %d missing syllabus question(s).", added)
 
         rows = db.query(Question).order_by(Question.id.asc()).all()
         if not rows:
@@ -194,9 +198,7 @@ def _dedupe_and_fill_syllabus_questions() -> None:
         # Remove repeats only when same module + topic + problem example (keeps one row per syllabus cell).
         by_semantic_key: dict[str, list[Question]] = {}
         for row in rows:
-            example = _example_from_title(row.title or "")
-            topic_part = parse_topic_from_full_title(row.module or "", row.title or "") or ""
-            semantic = f"{(row.module or '').strip().lower()}|{topic_part.strip().lower()}|{example.strip().lower()}"
+            semantic = syllabus_row_semantic_key(row.module or "", row.title or "")
             by_semantic_key.setdefault(semantic, []).append(row)
 
         deduped = 0

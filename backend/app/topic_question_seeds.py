@@ -219,6 +219,18 @@ def parse_topic_from_full_title(module: str, title: str) -> str | None:
     return rest[:pos].strip()
 
 
+def syllabus_row_semantic_key(module: str, title: str) -> str:
+    """
+    Stable identity for seeded / syllabus-shaped rows (module + topic + problem display text).
+    Must match the dedupe logic in app.main._dedupe_and_fill_syllabus_questions so deploys
+    do not insert duplicate rows when only the Q number or title wording changes.
+    """
+    raw = (title or "").strip()
+    example = raw.split(":", 1)[1].strip() if ":" in raw else raw
+    topic_part = parse_topic_from_full_title(module or "", title or "") or ""
+    return f"{(module or '').strip().lower()}|{topic_part.strip().lower()}|{example.strip().lower()}"
+
+
 def topic_order_index(module: str, topic: str) -> int:
     """Row order in _TOPIC_SEEDS matches the C Foundation syllabus topic order within each phase."""
     for i, (m, t, _) in enumerate(_TOPIC_SEEDS):
@@ -319,7 +331,15 @@ def seed_topic_questions_into_db(db: Session, *, reset: bool) -> int:
         db.query(Question).delete()
         db.commit()
 
-    existing = {q.title for q in db.query(Question).all()}
+    all_rows = db.query(Question).all()
+    existing_titles = {q.title for q in all_rows}
+    # Same logical question can exist under an older title string — skip insert by semantic key.
+    existing_semantic: set[str] = set()
+    for q in all_rows:
+        m = (q.module or "").strip()
+        if m.startswith("Phase "):
+            existing_semantic.add(syllabus_row_semantic_key(q.module or "", q.title or ""))
+
     added = 0
     catalog_q = 1
     for module, topic, keys in _TOPIC_SEEDS:
@@ -328,10 +348,12 @@ def seed_topic_questions_into_db(db: Session, *, reset: bool) -> int:
         for i, key in enumerate(keys):
             payload = _payload(module, topic, i, key, catalog_q=catalog_q)
             catalog_q += 1
-            if payload["title"] in existing:
+            sk = syllabus_row_semantic_key(payload["module"], payload["title"])
+            if sk in existing_semantic or payload["title"] in existing_titles:
                 continue
             db.add(Question(**payload))
-            existing.add(payload["title"])
+            existing_semantic.add(sk)
+            existing_titles.add(payload["title"])
             added += 1
     db.commit()
     return added

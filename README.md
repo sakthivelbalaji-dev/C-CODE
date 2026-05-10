@@ -145,6 +145,9 @@ npm run build
 - `AUTO_SEED_QUESTIONS` (default **on**)
   - On app startup, if the **`questions`** table has **zero** rows, the server inserts the full **110** topic-based syllabus set (same as `python seed_topic_questions.py` without `--reset`).
   - Set to `0` / `false` / `no` if you want an empty bank and will load questions yourself (SQL or CLI).
+- `AUTO_FILL_SYLLABUS_GAPS` (default **on**)
+  - On every startup, the server can **insert only missing** syllabus questions (by semantic identity: module + topic + problem text — not raw title string), then **dedupe** duplicate rows left over from older deploys.
+  - Set to `0` / `false` / `no` if you never want startup to insert new catalog rows (only content correction + dedupe still run). Use this if you manage the bank entirely by hand.
 
 Optional: **`backend/scripts/provision_staff.py`** can create the two rows with a preset password instead of staff using Sign up:
 
@@ -158,7 +161,7 @@ cd backend && python scripts/provision_staff.py --password "YOUR_STRONG_INITIAL_
 python seed_topic_questions.py --reset
 ```
 
-`--reset` deletes all attempts and questions, then inserts the full set. Omit `--reset` to only append titles that are not already present.
+`--reset` deletes all attempts and questions, then inserts the full set. Omit `--reset` to append only rows that are not already represented (same **semantic** key as the server — not only an exact title match).
 
 ## API and Frontend Integration
 
