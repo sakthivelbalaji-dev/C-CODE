@@ -60,6 +60,7 @@ function clearQuestionTimerStorage(mergedUser, questionId) {
   const id = String(questionId)
   persist.removeItem(`ccodelab_q_started_${keyPrefix}${id}`)
   persist.removeItem(`ccodelab_q_remaining_${keyPrefix}${id}`)
+  persist.removeItem(`ccodelab_q_attempt_started_${keyPrefix}${id}`)
 }
 
 function InfoBlock({ accent, title, body, fallback = '', defaultText = '' }) {
@@ -132,6 +133,9 @@ function QuestionPage() {
   /** Set when last graded submit did not pass all tests; cleared on full pass. */
   const [showTryAgainHint, setShowTryAgainHint] = useState(false)
   const [nextLoading, setNextLoading] = useState(false)
+  const [prevLoading, setPrevLoading] = useState(false)
+  /** Students: false until Start — then timer runs and editor unlocks. Staff always unlocked. */
+  const [attemptStarted, setAttemptStarted] = useState(false)
 
   useEffect(() => {
     compileDecorIdsRef.current = clearCompileFeedback(
@@ -147,7 +151,44 @@ function QuestionPage() {
     pendingExpirySubmitRef.current = false
   }, [question?.id])
 
+  /** Resolve whether this question attempt is already live (staff, resume, or legacy mid-session). */
+  useEffect(() => {
+    const merged = currentUser || readPersistedStudentPayload()
+    if (merged?.role === 'staff') {
+      setAttemptStarted(true)
+      return
+    }
+    const qid = question?.id
+    if (qid == null) {
+      setAttemptStarted(true)
+      return
+    }
+    const studentId = typeof merged?.id === 'number' && merged.role !== 'staff' ? merged.id : null
+    const persist = studentId != null ? window.localStorage : window.sessionStorage
+    const keyPrefix = studentId != null ? `${studentId}_` : 'anon_'
+    const rawMin = Number(question?.time_limit_minutes)
+    const limitMinutes = Number.isFinite(rawMin) ? Math.min(Math.max(rawMin, 1), 24 * 60) : 15
+    const limitSec = Math.floor(limitMinutes * 60)
+    const remainingKey = `ccodelab_q_remaining_${keyPrefix}${qid}`
+    const startedKey = `ccodelab_q_attempt_started_${keyPrefix}${qid}`
+    const rem = Number.parseInt(String(persist.getItem(remainingKey) ?? ''), 10)
+    const hasStartedFlag = persist.getItem(startedKey) === '1'
+    const legacyMid =
+      !hasStartedFlag && Number.isFinite(rem) && rem > 0 && rem < limitSec
+    if (hasStartedFlag || legacyMid) {
+      setAttemptStarted(true)
+    } else {
+      setAttemptStarted(false)
+    }
+  }, [question?.id, question?.time_limit_minutes, currentUser])
+
   isProcessingRef.current = isProcessing
+
+  useEffect(() => {
+    const u = currentUser || readPersistedStudentPayload()
+    const locked = u?.role !== 'staff' && !attemptStarted
+    editorRef.current?.updateOptions({ readOnly: locked })
+  }, [attemptStarted, currentUser])
 
   const fireAutoSubmitOnTimeUp = () => {
     if (expiryAutoSubmitFiredRef.current) return
@@ -214,12 +255,19 @@ function QuestionPage() {
     const remainingKey = `ccodelab_q_remaining_${keyPrefix}${questionKey}`
     const legacyStartedKey = `ccodelab_q_started_${keyPrefix}${questionKey}`
 
+    persist.removeItem(legacyStartedKey)
+
+    /** Clock frozen at full allocation until the student presses Start (attemptStarted). */
+    if (!attemptStarted) {
+      setTimerRemain(limitSec)
+      return undefined
+    }
+
     let initialRemain = Number.parseInt(String(persist.getItem(remainingKey) ?? ''), 10)
     if (!Number.isFinite(initialRemain) || initialRemain < 0 || initialRemain > limitSec) {
       initialRemain = limitSec
     }
     persist.setItem(remainingKey, String(initialRemain))
-    persist.removeItem(legacyStartedKey)
 
     const latestRemainRef = { current: initialRemain }
     setTimerRemain(initialRemain)
@@ -248,7 +296,7 @@ function QuestionPage() {
       window.clearInterval(intervalId)
       persist.setItem(remainingKey, String(Math.max(0, latestRemainRef.current)))
     }
-  }, [question?.id, question?.time_limit_minutes, currentUser])
+  }, [question?.id, question?.time_limit_minutes, currentUser, attemptStarted])
 
   const timerExpiredForGrade =
     timerRemain !== 'staff' && typeof timerRemain === 'number' && timerRemain <= 0
@@ -515,6 +563,62 @@ function QuestionPage() {
       return { ok: true, noNext: false, retryable: false }
     } catch {
       return { ok: false, noNext: false, retryable: true }
+    }
+  }
+
+  /**
+   * Immediate previous question in syllabus order (full list; for «Previous» navigation).
+   * @returns {Promise<{ ok: boolean, noPrev: boolean, retryable: boolean }>}
+   */
+  const goToSyllabusPreviousQuestion = async (fromQuestionId) => {
+    try {
+      const res = await fetch(apiUrl(`/questions/${fromQuestionId}/syllabus-previous`))
+      const body = await parseResponseJson(res)
+      if (!res.ok || !body?.id) {
+        const noPrev = res.status === 404
+        return { ok: false, noPrev, retryable: !noPrev }
+      }
+
+      const user = currentUser || readPersistedStudentPayload()
+      compileDecorIdsRef.current = clearCompileFeedback(
+        editorRef.current,
+        monacoRef.current,
+        compileDecorIdsRef.current,
+      )
+
+      setQuestion(body)
+      if (body.difficulty) {
+        setDifficulty(body.difficulty)
+      }
+
+      const listResponse = await fetch(
+        apiUrl(`/questions/?difficulty=${encodeURIComponent(body.difficulty || 'easy')}`),
+      )
+      if (listResponse.ok) {
+        const listData = await listResponse.json()
+        if (Array.isArray(listData) && listData.length > 0) {
+          setQuestionList(listData)
+          const idx = listData.findIndex((item) => item.id === body.id)
+          setCurrentQuestionIndex(idx >= 0 ? idx : 0)
+        } else {
+          setQuestionList([body])
+          setCurrentQuestionIndex(0)
+        }
+      } else {
+        setQuestionList([body])
+        setCurrentQuestionIndex(0)
+      }
+
+      if (user?.id) {
+        const draftKey = `ccodelab_draft_${user.id}_${body.id}`
+        setCode(localStorage.getItem(draftKey) ?? '')
+      } else {
+        setCode('')
+      }
+      setCustomInput('')
+      return { ok: true, noPrev: false, retryable: false }
+    } catch {
+      return { ok: false, noPrev: false, retryable: true }
     }
   }
 
@@ -871,8 +975,53 @@ function QuestionPage() {
     }
   }
 
+  const handlePrevSyllabusClick = async () => {
+    if (!question?.id) return
+    setPrevLoading(true)
+    try {
+      const nav = await goToSyllabusPreviousQuestion(question.id)
+      if (nav.ok) {
+        setOutputConsole('Moved to the previous syllabus question.')
+        setShowTryAgainHint(false)
+      } else if (nav.noPrev) {
+        setOutputConsole('You are on the first question in this syllabus order.')
+      } else {
+        setOutputConsole('Could not open the previous question. Try again shortly.')
+      }
+    } finally {
+      setPrevLoading(false)
+    }
+  }
+
+  const handleStartAttempt = () => {
+    const merged = currentUser || readPersistedStudentPayload()
+    if (merged?.role === 'staff') return
+    const qid = question?.id
+    if (qid == null) return
+    const studentId = typeof merged?.id === 'number' ? merged.id : null
+    const persist = studentId != null ? window.localStorage : window.sessionStorage
+    const keyPrefix = studentId != null ? `${studentId}_` : 'anon_'
+    const rawMin = Number(question?.time_limit_minutes)
+    const limitMinutes = Number.isFinite(rawMin) ? Math.min(Math.max(rawMin, 1), 24 * 60) : 15
+    const limitSec = Math.floor(limitMinutes * 60)
+    const remainingKey = `ccodelab_q_remaining_${keyPrefix}${qid}`
+    const startedKey = `ccodelab_q_attempt_started_${keyPrefix}${qid}`
+    persist.setItem(startedKey, '1')
+    persist.setItem(remainingKey, String(limitSec))
+    setTimerRemain(limitSec)
+    setAttemptStarted(true)
+    expiryAutoSubmitFiredRef.current = false
+    prevTimerRemainForExpiryRef.current = null
+    pendingExpirySubmitRef.current = false
+    setOutputConsole('Timer started — you can edit your code, run, and submit.')
+  }
+
   const panelClass =
     'min-w-0 rounded-2xl bg-brand-card/35 p-6 shadow-[0_12px_40px_-18px_rgba(0,0,0,0.55)] ring-1 ring-brand-line/60'
+
+  const sessionUser = currentUser || readPersistedStudentPayload()
+  const isStaffUser = sessionUser?.role === 'staff'
+  const gateLocked = !isStaffUser && !attemptStarted
 
   return (
     <main className="min-h-screen bg-brand-bg">
@@ -974,17 +1123,23 @@ function QuestionPage() {
                 </span>
               ) : timerRemain !== null ? (
                 <span
-                  title={`${Number(question.time_limit_minutes) || 15} minutes allocated for this question`}
+                  title={
+                    gateLocked
+                      ? 'Press Start to begin the countdown'
+                      : `${Number(question.time_limit_minutes) || 15} minutes allocated for this question`
+                  }
                   className={`shrink-0 rounded-full px-3 py-1.5 font-mono text-[12px] font-semibold tabular-nums ring-1 transition ${
-                    timerExpiredForGrade
-                      ? 'bg-rose-500/15 text-rose-200 ring-rose-400/35'
-                      : typeof timerRemain === 'number' && timerRemain <= 120
-                        ? 'bg-amber-500/12 text-amber-200 ring-amber-400/35'
-                        : 'bg-brand-neonBlue/15 text-brand-neonBlue ring-brand-neonBlue/25'
+                    gateLocked
+                      ? 'bg-slate-600/20 text-slate-300 ring-slate-500/35'
+                      : timerExpiredForGrade
+                        ? 'bg-rose-500/15 text-rose-200 ring-rose-400/35'
+                        : typeof timerRemain === 'number' && timerRemain <= 120
+                          ? 'bg-amber-500/12 text-amber-200 ring-amber-400/35'
+                          : 'bg-brand-neonBlue/15 text-brand-neonBlue ring-brand-neonBlue/25'
                   }`}
                   aria-live="polite"
                 >
-                  Time left&nbsp;
+                  {gateLocked ? 'Ready ' : 'Time left '}
                   <span className="text-[13px]">{formatCountdown(timerRemain ?? 0)}</span>
                 </span>
               ) : (
@@ -1008,6 +1163,21 @@ function QuestionPage() {
               <strong className="font-semibold text-amber-50">Submit</strong> — when every test passes, your score and progress update automatically.
             </p>
           )}
+          {gateLocked && (
+            <div className="flex flex-col gap-3 rounded-xl border border-cyan-500/35 bg-cyan-500/[0.06] px-4 py-3.5 ring-1 ring-cyan-500/15 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-[13px] leading-snug text-brand-muted">
+                <strong className="font-semibold text-brand-text">Start</strong> your attempt to turn on the timer and unlock the editor.
+                Until then, code editing and Run/Submit stay disabled.
+              </p>
+              <button
+                type="button"
+                onClick={handleStartAttempt}
+                className="shrink-0 rounded-xl bg-cyan-500 px-6 py-2.5 text-sm font-semibold text-slate-950 shadow-[0_0_18px_-4px_rgba(6,182,212,0.55)] transition hover:brightness-110"
+              >
+                Start
+              </button>
+            </div>
+          )}
           <div className="overflow-hidden rounded-xl ring-1 ring-black/40">
             <Editor
               height="420px"
@@ -1025,6 +1195,7 @@ function QuestionPage() {
                 overviewRulerLanes: 4,
                 fontSize: 14,
                 scrollBeyondLastLine: false,
+                readOnly: gateLocked,
               }}
             />
           </div>
@@ -1038,8 +1209,9 @@ function QuestionPage() {
                 rows="4"
                 placeholder="stdin for Run / optional try-out…"
                 value={customInput}
+                disabled={gateLocked}
                 onChange={(event) => setCustomInput(event.target.value)}
-                className="w-full rounded-xl border border-brand-line/70 bg-brand-bg/80 px-3.5 py-3 text-sm text-brand-text shadow-inner outline-none transition placeholder:text-brand-muted/50 focus:border-brand-neonBlue/80 focus:ring-1 focus:ring-brand-neonBlue/35"
+                className="w-full rounded-xl border border-brand-line/70 bg-brand-bg/80 px-3.5 py-3 text-sm text-brand-text shadow-inner outline-none transition placeholder:text-brand-muted/50 focus:border-brand-neonBlue/80 focus:ring-1 focus:ring-brand-neonBlue/35 disabled:cursor-not-allowed disabled:opacity-50"
               />
             </label>
             <div>
@@ -1055,7 +1227,8 @@ function QuestionPage() {
           <div className="flex flex-wrap gap-3 pt-1">
             <button
               type="button"
-              disabled={isProcessing}
+              disabled={isProcessing || gateLocked}
+              title={gateLocked ? 'Press Start to enable Run' : undefined}
               onClick={() => runProcess('run')}
               className="rounded-xl border border-brand-neonBlue/60 bg-brand-neonBlue/10 px-5 py-2.5 text-sm font-medium text-brand-neonBlue transition hover:bg-brand-neonBlue/20 disabled:opacity-50"
             >
@@ -1063,11 +1236,13 @@ function QuestionPage() {
             </button>
             <button
               type="button"
-              disabled={isProcessing || timerExpiredForGrade}
+              disabled={isProcessing || timerExpiredForGrade || gateLocked}
               title={
-                timerExpiredForGrade
-                  ? 'Time limit ended — graded submit ran automatically'
-                  : 'Submit for graded test cases (also runs automatically when time runs out)'
+                gateLocked
+                  ? 'Press Start before submitting'
+                  : timerExpiredForGrade
+                    ? 'Time limit ended — graded submit ran automatically'
+                    : 'Submit for graded test cases (also runs automatically when time runs out)'
               }
               onClick={() => runProcess('submit')}
               className="rounded-xl bg-brand-neonGreen px-5 py-2.5 text-sm font-semibold text-slate-900 shadow-[0_0_20px_-4px_rgba(34,197,94,0.55)] transition hover:brightness-110 disabled:opacity-50"
@@ -1076,7 +1251,16 @@ function QuestionPage() {
             </button>
             <button
               type="button"
-              disabled={isProcessing || nextLoading || !question?.id}
+              disabled={isProcessing || prevLoading || nextLoading || !question?.id}
+              title="Go to the previous question in syllabus order"
+              onClick={() => void handlePrevSyllabusClick()}
+              className="rounded-xl bg-violet-500 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_0_20px_-4px_rgba(139,92,246,0.45)] transition hover:brightness-110 disabled:opacity-50"
+            >
+              {prevLoading ? '…' : 'Previous'}
+            </button>
+            <button
+              type="button"
+              disabled={isProcessing || nextLoading || prevLoading || !question?.id}
               title="Go to the next question in syllabus order (skips questions you already solved when signed in)"
               onClick={() => void handleNextSyllabusClick()}
               className="rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-semibold text-slate-900 shadow-[0_0_20px_-4px_rgba(245,158,11,0.55)] transition hover:brightness-110 disabled:opacity-50"

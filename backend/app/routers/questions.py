@@ -148,6 +148,24 @@ def get_following_question_in_syllabus(
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Question not found.")
 
 
+@router.get("/{question_id}/syllabus-previous", response_model=QuestionOut)
+def get_preceding_question_in_syllabus(question_id: int, db: Session = Depends(get_db)):
+    """Previous question in canonical syllabus order (always the immediate predecessor, for review/navigation)."""
+    ordered = sorted(
+        db.query(Question).all(),
+        key=question_syllabus_sort_key,
+    )
+    for index, row in enumerate(ordered):
+        if row.id == question_id:
+            if index == 0:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="No previous question in syllabus order.",
+                )
+            return _serialize_question(ordered[index - 1])
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Question not found.")
+
+
 @router.get("/{question_id}", response_model=QuestionPublicOut)
 def get_question(question_id: int, db: Session = Depends(get_db)):
     question = db.query(Question).filter(Question.id == question_id).first()
