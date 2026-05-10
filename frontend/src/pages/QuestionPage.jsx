@@ -18,9 +18,8 @@ async function parseResponseJson(response) {
 }
 
 const defaultCode = `#include <stdio.h>
-
 int main() {
-    return 0;
+  return 0;
 }
 `
 
@@ -143,6 +142,8 @@ function QuestionPage() {
   const pendingExpirySubmitRef = useRef(false)
   const isProcessingRef = useRef(false)
   const initCompleteRef = useRef(false)
+  /** After a graded Submit, next «Forward» navigation loads only defaultCode (not prior question / stored draft). */
+  const useFreshEditorOnNextNavRef = useRef(false)
   /** Set when last graded submit did not pass all tests; cleared on full pass. */
   const [showTryAgainHint, setShowTryAgainHint] = useState(false)
   const [nextLoading, setNextLoading] = useState(false)
@@ -647,7 +648,13 @@ function QuestionPage() {
         setCurrentQuestionIndex(0)
       }
 
-      if (user?.id) {
+      if (useFreshEditorOnNextNavRef.current) {
+        useFreshEditorOnNextNavRef.current = false
+        if (user?.id) {
+          localStorage.removeItem(`ccodelab_draft_${user.id}_${body.id}`)
+        }
+        setCode(defaultCode)
+      } else if (user?.id) {
         const nextDraftKey = `ccodelab_draft_${user.id}_${body.id}`
         setCode(localStorage.getItem(nextDraftKey) ?? defaultCode)
       } else {
@@ -725,6 +732,7 @@ function QuestionPage() {
     const cur = timerRemainRef.current
     const sec = typeof cur === 'number' ? Math.max(0, Math.floor(cur)) : 0
     persist.setItem(`ccodelab_q_submit_timer_stopped_${keyPrefix}${String(question.id)}`, String(sec))
+    useFreshEditorOnNextNavRef.current = true
     setTimerFreezeNonce((n) => n + 1)
   }, [question?.id, currentUser])
 
