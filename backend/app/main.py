@@ -447,9 +447,12 @@ def health_check():
 
 @app.get("/admin")
 def serve_admin_panel():
+    """Prefer legacy admin.html if present; otherwise SPA index (staff /admin route)."""
     if ADMIN_FILE.exists():
         return FileResponse(str(ADMIN_FILE))
-    raise HTTPException(status_code=404, detail="Admin panel not found")
+    if INDEX_FILE.is_file():
+        return FileResponse(str(INDEX_FILE))
+    raise HTTPException(status_code=404, detail="Admin not available")
 
 
 @app.get("/{full_path:path}")
