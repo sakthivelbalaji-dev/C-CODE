@@ -208,26 +208,16 @@ function QuestionPage() {
     }
     const qid = question?.id
     if (qid == null) {
-      setAttemptStarted(true)
+      setAttemptStarted(false)
       return
     }
     const studentId = typeof merged?.id === 'number' && merged.role !== 'staff' ? merged.id : null
     const persist = studentId != null ? window.localStorage : window.sessionStorage
     const keyPrefix = studentId != null ? `${studentId}_` : 'anon_'
-    const rawMin = Number(question?.time_limit_minutes)
-    const limitMinutes = Number.isFinite(rawMin) ? Math.min(Math.max(rawMin, 1), 24 * 60) : 15
-    const limitSec = Math.floor(limitMinutes * 60)
-    const remainingKey = `ccodelab_q_remaining_${keyPrefix}${qid}`
     const startedKey = `ccodelab_q_attempt_started_${keyPrefix}${qid}`
-    const rem = Number.parseInt(String(persist.getItem(remainingKey) ?? ''), 10)
     const hasStartedFlag = persist.getItem(startedKey) === '1'
-    const legacyMid =
-      !hasStartedFlag && Number.isFinite(rem) && rem > 0 && rem < limitSec
-    if (hasStartedFlag || legacyMid) {
-      setAttemptStarted(true)
-    } else {
-      setAttemptStarted(false)
-    }
+    /** Only resume if this question was explicitly started in this browser (Start button). */
+    setAttemptStarted(hasStartedFlag)
   }, [question?.id, question?.time_limit_minutes, currentUser])
 
   isProcessingRef.current = isProcessing
@@ -1241,22 +1231,25 @@ function QuestionPage() {
               <strong className="font-semibold text-amber-50">Submit</strong> — when every test passes, your score and progress update automatically.
             </p>
           )}
-          {gateLocked && (
-            <div className="flex flex-col gap-3 rounded-xl border border-cyan-500/35 bg-cyan-500/[0.06] px-4 py-3.5 ring-1 ring-cyan-500/15 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-[13px] leading-snug text-brand-muted">
-                <strong className="font-semibold text-brand-text">Start</strong> your attempt to turn on the timer and unlock the editor.
-                Until then, code editing and Run/Submit stay disabled.
-              </p>
-              <button
-                type="button"
-                onClick={handleStartAttempt}
-                className="shrink-0 rounded-xl bg-cyan-500 px-6 py-2.5 text-sm font-semibold text-slate-950 shadow-[0_0_18px_-4px_rgba(6,182,212,0.55)] transition hover:brightness-110"
+          <div className="relative overflow-hidden rounded-xl ring-1 ring-black/40">
+            {gateLocked && (
+              <div
+                className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-[#0a0f18]/88 px-6 py-10 text-center ring-1 ring-inset ring-cyan-500/20 backdrop-blur-[2px]"
+                aria-live="polite"
               >
-                Start
-              </button>
-            </div>
-          )}
-          <div className="overflow-hidden rounded-xl ring-1 ring-black/40">
+                <p className="max-w-sm text-[14px] leading-relaxed text-brand-muted">
+                  Press <span className="font-semibold text-brand-text">Start</span> to begin. The countdown runs and the
+                  editor unlocks only after you start — Run and Submit stay off until then.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleStartAttempt}
+                  className="rounded-xl bg-cyan-500 px-10 py-3 text-base font-semibold text-slate-950 shadow-[0_0_22px_-4px_rgba(6,182,212,0.6)] transition hover:brightness-110"
+                >
+                  Start
+                </button>
+              </div>
+            )}
             <Editor
               height="420px"
               theme="vs-dark"
