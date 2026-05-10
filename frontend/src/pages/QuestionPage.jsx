@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import Editor from '@monaco-editor/react'
 import AppNavbar from '../components/AppNavbar'
@@ -65,6 +65,7 @@ function clearQuestionTimerStorage(mergedUser, questionId) {
   persist.removeItem(`ccodelab_q_started_${keyPrefix}${id}`)
   persist.removeItem(`ccodelab_q_remaining_${keyPrefix}${id}`)
   persist.removeItem(`ccodelab_q_attempt_started_${keyPrefix}${id}`)
+  persist.removeItem(`ccodelab_q_submit_timer_stopped_${keyPrefix}${id}`)
 }
 
 function InfoBlock({ accent, title, body, fallback = '', defaultText = '' }) {
@@ -116,8 +117,11 @@ function QuestionPage() {
     ],
     time_limit_minutes: 15,
   })
-  /** `null` = computing, `"staff"` = no graded limit, number = seconds remaining */
+  /** `null` = computing, `"staff"` = no graded limit, `"solved"` = passed (review), number = seconds remaining */
   const [timerRemain, setTimerRemain] = useState(null)
+  /** Forces timer effect to re-read storage after graded submit freezes the clock. */
+  const [timerFreezeNonce, setTimerFreezeNonce] = useState(0)
+  const timerRemainRef = useRef(null)
   const [testCaseResults, setTestCaseResults] = useState([])
   const testCaseSectionRef = useRef(null)
   const editorRef = useRef(null)
@@ -186,6 +190,10 @@ function QuestionPage() {
   }, [refreshSolvedProgress])
 
   useEffect(() => {
+    timerRemainRef.current = timerRemain
+  }, [timerRemain])
+
+  useEffect(() => {
     compileDecorIdsRef.current = clearCompileFeedback(
       editorRef.current,
       monacoRef.current,
@@ -211,6 +219,10 @@ function QuestionPage() {
       setAttemptStarted(false)
       return
     }
+    if (typeof merged?.id === 'number' && merged.role !== 'staff' && solvedQuestionIds.has(qid)) {
+      setAttemptStarted(true)
+      return
+    }
     const studentId = typeof merged?.id === 'number' && merged.role !== 'staff' ? merged.id : null
     const persist = studentId != null ? window.localStorage : window.sessionStorage
     const keyPrefix = studentId != null ? `${studentId}_` : 'anon_'
@@ -218,7 +230,7 @@ function QuestionPage() {
     const hasStartedFlag = persist.getItem(startedKey) === '1'
     /** Only resume if this question was explicitly started in this browser (Start button). */
     setAttemptStarted(hasStartedFlag)
-  }, [question?.id, question?.time_limit_minutes, currentUser])
+  }, [question?.id, question?.time_limit_minutes, currentUser, solvedQuestionIds])
 
   isProcessingRef.current = isProcessing
 
@@ -240,7 +252,7 @@ function QuestionPage() {
   }
 
   useEffect(() => {
-    if (timerRemain === 'staff' || timerRemain === null) return
+    if (timerRemain === 'staff' || timerRemain === 'solved' || timerRemain === null) return
     if (question?.id == null) return
     if ((currentUser || readPersistedStudentPayload())?.role === 'staff') return
 
@@ -292,8 +304,24 @@ function QuestionPage() {
     const keyPrefix = studentId != null ? `${studentId}_` : 'anon_'
     const remainingKey = `ccodelab_q_remaining_${keyPrefix}${questionKey}`
     const legacyStartedKey = `ccodelab_q_started_${keyPrefix}${questionKey}`
+    const submitStoppedKey = `ccodelab_q_submit_timer_stopped_${keyPrefix}${questionKey}`
 
     persist.removeItem(legacyStartedKey)
+
+    if (question?.id != null && solvedQuestionIds.has(question.id)) {
+      setTimerRemain('solved')
+      return undefined
+    }
+
+    const stoppedRaw = persist.getItem(submitStoppedKey)
+    if (stoppedRaw != null && stoppedRaw !== '') {
+      const frozen = Number.parseInt(String(stoppedRaw), 10)
+      if (Number.isFinite(frozen) && frozen >= 0) {
+        setTimerRemain(Math.min(frozen, limitSec))
+        persist.setItem(remainingKey, String(Math.min(frozen, limitSec)))
+        return undefined
+      }
+    }
 
     /** Clock frozen at full allocation until the student presses Start (attemptStarted). */
     if (!attemptStarted) {
@@ -334,10 +362,31 @@ function QuestionPage() {
       window.clearInterval(intervalId)
       persist.setItem(remainingKey, String(Math.max(0, latestRemainRef.current)))
     }
-  }, [question?.id, question?.time_limit_minutes, currentUser, attemptStarted])
+  }, [
+    question?.id,
+    question?.time_limit_minutes,
+    currentUser,
+    attemptStarted,
+    solvedQuestionIds,
+    timerFreezeNonce,
+  ])
 
   const timerExpiredForGrade =
-    timerRemain !== 'staff' && typeof timerRemain === 'number' && timerRemain <= 0
+    timerRemain !== 'staff' &&
+    timerRemain !== 'solved' &&
+    typeof timerRemain === 'number' &&
+    timerRemain <= 0
+
+  const timerStoppedAfterSubmit = useMemo(() => {
+    if (question?.id == null) return false
+    const merged = currentUser || readPersistedStudentPayload()
+    if (merged?.role === 'staff') return false
+    const studentId = typeof merged?.id === 'number' ? merged.id : null
+    const persist = studentId != null ? window.localStorage : window.sessionStorage
+    const keyPrefix = studentId != null ? `${studentId}_` : 'anon_'
+    const v = persist.getItem(`ccodelab_q_submit_timer_stopped_${keyPrefix}${question.id}`)
+    return v != null && v !== ''
+  }, [question?.id, currentUser?.id, timerFreezeNonce])
 
   const scrollToTestCases = () => {
     if (testCaseSectionRef.current) {
@@ -660,6 +709,18 @@ function QuestionPage() {
     }
   }
 
+  const freezeTimerAfterGradedSubmit = useCallback(() => {
+    const merged = currentUser || readPersistedStudentPayload()
+    if (merged?.role === 'staff' || question?.id == null) return
+    const studentId = typeof merged?.id === 'number' ? merged.id : null
+    const persist = studentId != null ? window.localStorage : window.sessionStorage
+    const keyPrefix = studentId != null ? `${studentId}_` : 'anon_'
+    const cur = timerRemainRef.current
+    const sec = typeof cur === 'number' ? Math.max(0, Math.floor(cur)) : 0
+    persist.setItem(`ccodelab_q_submit_timer_stopped_${keyPrefix}${String(question.id)}`, String(sec))
+    setTimerFreezeNonce((n) => n + 1)
+  }, [question?.id, currentUser])
+
   const runProcess = async (mode, options = {}) => {
     scrollToTestCases()
 
@@ -735,6 +796,16 @@ function QuestionPage() {
       return
     }
 
+    if (
+      mode === 'submit' &&
+      (currentUser || readPersistedStudentPayload())?.role !== 'staff' &&
+      question?.id != null &&
+      solvedQuestionIds.has(question.id)
+    ) {
+      setOutputConsole('You already passed this question — use Next to continue in the syllabus, or Run to practice.')
+      return
+    }
+
     setIsProcessing(true)
     compileDecorIdsRef.current = clearCompileFeedback(
       editorRef.current,
@@ -803,6 +874,9 @@ function QuestionPage() {
             ed.focus()
           }
         })
+        if (mode === 'submit') {
+          freezeTimerAfterGradedSubmit()
+        }
         return
       }
 
@@ -901,6 +975,7 @@ function QuestionPage() {
             `${compilerEditorHint}Compilation successful.\nPassed ${passedCount}/${totalCount} test cases.${customOutputText}\n\nAll tests passed — your attempt was saved. Use Next when you are ready to open the following question in syllabus order.`,
           )
         }
+        freezeTimerAfterGradedSubmit()
       } else {
         setOutputConsole(
           `${compilerEditorHint}Compilation successful.\nPassed ${passedCount}/${totalCount} test cases.${customOutputText}`,
@@ -1117,25 +1192,37 @@ function QuestionPage() {
                 >
                   No graded time limit
                 </span>
+              ) : timerRemain === 'solved' ? (
+                <span
+                  title="You already passed this question — use Next to continue in the syllabus"
+                  className="shrink-0 rounded-full bg-emerald-500/15 px-3 py-1.5 text-[12px] font-semibold text-emerald-200 ring-1 ring-emerald-400/35"
+                  aria-live="polite"
+                >
+                  Passed — use Next
+                </span>
               ) : timerRemain !== null ? (
                 <span
                   title={
                     gateLocked
                       ? 'Press Start to begin the countdown'
-                      : `${Number(question.time_limit_minutes) || 15} minutes allocated for this question`
+                      : timerStoppedAfterSubmit
+                        ? 'Timer stopped after your graded Submit — Run still works'
+                        : `${Number(question.time_limit_minutes) || 15} minutes allocated for this question`
                   }
                   className={`shrink-0 rounded-full px-3 py-1.5 font-mono text-[12px] font-semibold tabular-nums ring-1 transition ${
                     gateLocked
                       ? 'bg-slate-600/20 text-slate-300 ring-slate-500/35'
-                      : timerExpiredForGrade
-                        ? 'bg-rose-500/15 text-rose-200 ring-rose-400/35'
-                        : typeof timerRemain === 'number' && timerRemain <= 120
-                          ? 'bg-amber-500/12 text-amber-200 ring-amber-400/35'
-                          : 'bg-brand-neonBlue/15 text-brand-neonBlue ring-brand-neonBlue/25'
+                      : timerStoppedAfterSubmit
+                        ? 'bg-cyan-500/12 text-cyan-100 ring-cyan-400/35'
+                        : timerExpiredForGrade
+                          ? 'bg-rose-500/15 text-rose-200 ring-rose-400/35'
+                          : typeof timerRemain === 'number' && timerRemain <= 120
+                            ? 'bg-amber-500/12 text-amber-200 ring-amber-400/35'
+                            : 'bg-brand-neonBlue/15 text-brand-neonBlue ring-brand-neonBlue/25'
                   }`}
                   aria-live="polite"
                 >
-                  {gateLocked ? 'Ready ' : 'Time left '}
+                  {gateLocked ? 'Ready ' : timerStoppedAfterSubmit ? 'Stopped at ' : 'Time left '}
                   <span className="text-[13px]">{formatCountdown(timerRemain ?? 0)}</span>
                 </span>
               ) : (
@@ -1153,7 +1240,13 @@ function QuestionPage() {
               Time limit reached for graded submit — use <strong className="font-semibold text-rose-50">Run</strong> to keep trying.
             </p>
           )}
-          {showTryAgainHint && !timerExpiredForGrade && (
+          {isQuestionCompleted && (
+            <p className="rounded-lg border border-emerald-500/40 bg-emerald-500/[0.08] px-3 py-2 text-[13px] leading-snug text-emerald-100/95">
+              You already <strong className="font-semibold text-emerald-50">passed</strong> this question. Graded Submit is turned off so you do not repeat the assessment — use{' '}
+              <strong className="font-semibold text-emerald-50">Next</strong> to move forward in the syllabus, or <strong className="font-semibold text-emerald-50">Run</strong> to practice.
+            </p>
+          )}
+          {showTryAgainHint && !timerExpiredForGrade && !isQuestionCompleted && (
             <p className="rounded-lg border border-amber-500/40 bg-amber-500/[0.08] px-3 py-2 text-[13px] leading-snug text-amber-100/95">
               <strong className="font-semibold text-amber-50">Try again:</strong> you are still on this question. Fix your code and press{' '}
               <strong className="font-semibold text-amber-50">Submit</strong> — when every test passes, your score and progress update automatically.
@@ -1235,13 +1328,17 @@ function QuestionPage() {
             </button>
             <button
               type="button"
-              disabled={isProcessing || timerExpiredForGrade || gateLocked}
+              disabled={
+                isProcessing || timerExpiredForGrade || gateLocked || isQuestionCompleted
+              }
               title={
-                gateLocked
-                  ? 'Press Start before submitting'
-                  : timerExpiredForGrade
-                    ? 'Time limit ended — graded submit ran automatically'
-                    : 'Submit for graded test cases only (timer expiry also submits; use Next to change question)'
+                isQuestionCompleted
+                  ? 'Already passed — use Next for the next question, or Run to practice'
+                  : gateLocked
+                    ? 'Press Start before submitting'
+                    : timerExpiredForGrade
+                      ? 'Time limit ended — graded submit ran automatically'
+                      : 'Submit for graded test cases only (timer expiry also submits; use Next to change question)'
               }
               onClick={() => runProcess('submit')}
               className="rounded-xl bg-brand-neonGreen px-5 py-2.5 text-sm font-semibold text-slate-900 shadow-[0_0_20px_-4px_rgba(34,197,94,0.55)] transition hover:brightness-110 disabled:opacity-50"
