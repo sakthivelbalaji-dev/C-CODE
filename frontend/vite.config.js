@@ -1,47 +1,20 @@
-/**
- * Cross-browser production build: legacy chunks + polyfills for older Safari/Chrome/Firefox/iOS.
- *
- * Install peer deps in frontend/:
- *   npm i -D @vitejs/plugin-legacy terser
- * (Also: @vitejs/plugin-react, vite — per your app version.)
- *
- * If you already have a vite.config, merge the `legacy` plugin and `build.cssTarget`/`build.target`.
- */
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import react from "@vitejs/plugin-react";
-import legacy from "@vitejs/plugin-legacy";
-import { defineConfig } from "vite";
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
+// https://vite.dev/config/
 export default defineConfig({
-  /** Production SPA uses `/api` (same origin as FastAPI). Local `vite` dev proxies to backend. */
+  plugins: [react()],
+  build: {
+    // Single deployable folder: FastAPI serves backend/dist (no frontend/dist copy step)
+    outDir: '../backend/dist',
+    emptyOutDir: true,
+  },
   server: {
     proxy: {
-      "/api": { target: "http://127.0.0.1:8000", changeOrigin: true },
+      '/api': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+      },
     },
   },
-  plugins: [
-    react(),
-    legacy({
-      targets: [
-        "Chrome >= 73",
-        "Edge >= 79",
-        "Safari >= 12.1",
-        "Firefox >= 67",
-        "iOS >= 12",
-      ],
-      modernPolyfills: true,
-      polyfills: true,
-      renderLegacyChunks: true,
-    }),
-  ],
-  build: {
-    outDir: path.resolve(__dirname, "../backend/dist"),
-    emptyOutDir: true,
-    target: "baseline-widely-available",
-    cssTarget: ["chrome80", "safari14", "firefox78"],
-    chunkSizeWarningLimit: 1200,
-  },
-});
+})

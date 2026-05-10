@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply m-0 bg-brand-bg text-brand-text antialiased;
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+#root {
+  @apply min-h-screen;
+}
+
+/* Thin scrollbars — avoids stark default (esp. Windows) bars between workspace columns */
+@layer utilities {
+  .scrollbar-workspace {
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: rgb(71 85 105 / 0.75) rgb(30 41 59 / 0.35);
+  }
+  .scrollbar-workspace::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+  }
+  .scrollbar-workspace::-webkit-scrollbar-track {
+    background: rgb(30 41 59 / 0.4);
+    border-radius: 9999px;
+    margin-block: 4px;
+  }
+  .scrollbar-workspace::-webkit-scrollbar-thumb {
+    background: rgb(71 85 105 / 0.85);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  .scrollbar-workspace::-webkit-scrollbar-thumb:hover {
+    background: rgb(100 116 139 / 0.95);
+    background-clip: padding-box;
+  }
+}
+
+/* Monaco — compile diagnostics: gutter “bulb” + short inline hint */
+.monaco-editor .ccl-compile-glyph-error,
+.monaco-editor .ccl-compile-glyph-warn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: help;
+}
+.monaco-editor .ccl-compile-glyph-error::before {
+  content: '💡';
+  font-size: 12px;
+  line-height: 1;
+  filter: drop-shadow(0 0 4px rgb(248 113 113 / 0.45));
+}
+.monaco-editor .ccl-compile-glyph-warn::before {
+  content: '⚠️';
+  font-size: 11px;
+  line-height: 1;
+}
+.monaco-editor .ccl-compile-hint-after {
+  color: rgb(252 165 165 / 0.95) !important;
+  font-size: 11px !important;
+  font-style: italic;
+  white-space: pre;
+  margin-left: 2px;
+}
+.monaco-editor .ccl-compile-hint-after-warn {
+  color: rgb(251 191 36 / 0.95) !important;
+  font-size: 11px !important;
+  font-style: italic;
+  white-space: pre;
+  margin-left: 2px;
+}
