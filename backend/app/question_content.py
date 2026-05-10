@@ -117,7 +117,7 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
             expected_output="120",
             constraints="0 <= n <= 12",
             input_format="One integer n.",
-            output_format="Print n!.",
+            output_format="Formula: n! = 1*2*...*n (0! = 1). Print n! as an integer.",
             examples=[{"input": "5", "output": "120"}, {"input": "0", "output": "1"}],
             tests=[{"input": "1", "output": "1"}, {"input": "6", "output": "720"}, {"input": "3", "output": "6"}],
         ),
@@ -138,7 +138,7 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
             expected_output="15",
             constraints="1 <= n <= 10^5; -10^4 <= arr[i] <= 10^4",
             input_format="First line n, second line n integers.",
-            output_format="Print sum of elements.",
+            output_format="Formula: total = arr[0] + arr[1] + ... + arr[n-1]. Print total as an integer.",
             examples=[{"input": "5\n1 2 3 4 5", "output": "15"}, {"input": "3\n-1 2 4", "output": "5"}],
             tests=[{"input": "1\n10", "output": "10"}, {"input": "4\n0 0 0 0", "output": "0"}, {"input": "3\n7 8 9", "output": "24"}],
         ),
@@ -156,7 +156,7 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
             expected_output="6 8\n10 12",
             constraints="1 <= r, c <= 20",
             input_format="r c, then matrix A (r lines), then matrix B (r lines).",
-            output_format="Print A+B matrix row-wise.",
+            output_format="Formula: C[i][j] = A[i][j] + B[i][j]. Print C row-wise.",
             examples=[{"input": "1 2\n1 3\n4 5", "output": "5 8"}, {"input": "2 1\n2\n3\n1\n4", "output": "3\n7"}],
             tests=[{"input": "1 1\n2\n7", "output": "9"}, {"input": "2 2\n1 1\n1 1\n2 2\n2 2", "output": "3 3\n3 3"}, {"input": "1 3\n1 2 3\n3 2 1", "output": "4 4 4"}],
         ),
@@ -192,7 +192,7 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
             expected_output="120",
             constraints="0 <= n <= 12",
             input_format="One integer n.",
-            output_format="Print factorial of n using a function.",
+            output_format="Formula: n! = 1*2*...*n (0! = 1). Print factorial of n using a function.",
             examples=[{"input": "5", "output": "120"}, {"input": "4", "output": "24"}],
             tests=[{"input": "0", "output": "1"}, {"input": "1", "output": "1"}, {"input": "6", "output": "720"}],
         ),
@@ -201,7 +201,10 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
             expected_output="0 1 1 2 3 5 8",
             constraints="0 <= n <= 40",
             input_format="One integer n (number of terms). For n = 0, print an empty line (no numbers).",
-            output_format="Print the first n Fibonacci numbers separated by spaces (or print nothing for n = 0).",
+            output_format=(
+                "Formula: F(0)=0, F(1)=1, F(i)=F(i-1)+F(i-2) for i>=2. "
+                "Print the first n Fibonacci numbers separated by spaces (or print nothing for n = 0)."
+            ),
             examples=[
                 {"input": "5", "output": "0 1 1 2 3"},
                 {"input": "1", "output": "0"},
@@ -219,7 +222,10 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
             expected_output="15",
             constraints="1 <= n <= 10^4",
             input_format="One integer n.",
-            output_format="Print sum of numbers from 1 to n using recursion.",
+            output_format=(
+                "Formula: S(n)=1+2+...+n = n*(n+1)/2 (closed form); implement via recursion S(n)=n+S(n-1), S(1)=1. "
+                "Print S(n)."
+            ),
             examples=[{"input": "5", "output": "15"}, {"input": "1", "output": "1"}],
             tests=[{"input": "2", "output": "3"}, {"input": "10", "output": "55"}, {"input": "7", "output": "28"}],
         ),
@@ -468,7 +474,10 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
                 "For n < 2 (including 0, 1) and for negative n, print Not."
             ),
             input_format="One integer n.",
-            output_format='Print exactly Prime or Not (capital P / capital N as shown).',
+            output_format=(
+                "Formula: n is prime iff n>=2 and no d with 2<=d*d<=n divides n. "
+                "Print exactly Prime or Not (capital P / capital N as shown)."
+            ),
             examples=[{"input": "8", "output": "Not"}, {"input": "7", "output": "Prime"}, {"input": "1", "output": "Not"}],
             tests=[
                 {"input": "2", "output": "Prime"},
@@ -484,7 +493,9 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
             expected_output="Leap",
             constraints="1 <= year <= 10^9",
             input_format="One integer year.",
-            output_format="Print Leap or Not",
+            output_format=(
+                "Formula: leap iff (year%400==0) OR (year%4==0 AND year%100!=0). Print Leap or Not."
+            ),
             examples=[{"input": "2023", "output": "Not"}, {"input": "2024", "output": "Leap"}],
             tests=[
                 {"input": "2000", "output": "Leap"},
@@ -498,7 +509,7 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
             expected_output="100",
             constraints="0 <= P,R,T <= 10^9; SI = (P*R*T)/100 using integer division.",
             input_format="Three lines: principal P, rate R, time T (all integers).",
-            output_format="Print simple interest as integer.",
+            output_format="Formula: SI = (P*R*T)/100 with integer division. Print SI as an integer.",
             examples=[{"input": "2000\n4\n3", "output": "240"}, {"input": "1000\n5\n2", "output": "100"}],
             tests=[{"input": "500\n10\n1", "output": "50"}, {"input": "1500\n8\n2", "output": "240"}, {"input": "9000\n0\n5", "output": "0"}],
         ),
@@ -507,7 +518,10 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
             expected_output="5 7 11 13",
             constraints="1 <= lo <= hi <= 200",
             input_format="One line with two integers lo and hi separated by whitespace.",
-            output_format="Print all primes in [lo, hi] inclusive, space-separated, ascending.",
+            output_format=(
+                "Formula: x is prime iff x>=2 and no integer d in [2, floor(sqrt(x))] has x%d==0. "
+                "Print all primes in [lo, hi] inclusive, space-separated, ascending."
+            ),
             examples=[{"input": "1 10", "output": "2 3 5 7"}, {"input": "5 15", "output": "5 7 11 13"}],
             tests=[{"input": "2 2", "output": "2"}, {"input": "14 18", "output": "17"}, {"input": "20 30", "output": "23 29"}],
         ),
@@ -517,10 +531,8 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
             constraints="1 <= n <= 10^6",
             input_format="One integer n.",
             output_format=(
-                "Let k be the number of decimal digits of n. "
-                "n is an Armstrong (narcissistic) number if the sum of (each digit raised to the k-th power) "
-                "equals n. Print Yes or No. "
-                "Single-digit n always satisfies this (k=1), so every 1–9 is Yes."
+                "Formula: with k = number of decimal digits of n, Armstrong iff n = sum over digits d of (d^k). "
+                "Print Yes or No. Single-digit n always satisfies this (k=1), so every 1–9 is Yes."
             ),
             examples=[{"input": "9474", "output": "Yes"}, {"input": "123", "output": "No"}, {"input": "153", "output": "Yes"}],
             tests=[
@@ -591,9 +603,9 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
         "gcd euclidean": _make_template(
             sample_input="48 18",
             expected_output="6",
-            constraints="0 <= a,b <= 10^9, not both zero. GCD(0, x) = x.",
+            constraints="0 <= a,b <= 10^9. GCD(0, x) = x; GCD(0, 0) = 0.",
             input_format="One line with two integers a and b separated by whitespace.",
-            output_format="Print GCD(a,b).",
+            output_format="Formula: gcd(a,b)=gcd(b, a mod b) until b=0; then gcd(a,0)=a. Print GCD(a,b).",
             examples=[{"input": "100 35", "output": "5"}, {"input": "48 18", "output": "6"}],
             tests=[
                 {"input": "7 13", "output": "1"},
@@ -608,7 +620,9 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
             expected_output="12",
             constraints="1 <= a,b <= 10^6",
             input_format="One line with two integers a and b separated by whitespace.",
-            output_format="Print LCM(a,b) using LCM = a*b/GCD(a,b) with integer arithmetic.",
+            output_format=(
+                "Formula: lcm(a,b) = a / gcd(a,b) * b (use 64-bit to avoid overflow). Print LCM(a,b)."
+            ),
             examples=[{"input": "5 7", "output": "35"}, {"input": "4 6", "output": "12"}],
             tests=[{"input": "3 9", "output": "9"}, {"input": "8 12", "output": "24"}, {"input": "11 13", "output": "143"}],
         ),
@@ -626,7 +640,7 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
             expected_output="8 2 5",
             constraints="1 <= n <= 10^5",
             input_format="First line n, second line n integers.",
-            output_format="Print max min average as integers: average = floor(sum/n).",
+            output_format="Formula: avg = floor((sum of elements) / n). Print max, min, avg as three integers.",
             examples=[{"input": "3\n10 20 30", "output": "30 10 20"}, {"input": "4\n2 8 4 6", "output": "8 2 5"}],
             tests=[{"input": "1\n7", "output": "7 7 7"}, {"input": "2\n1 2", "output": "2 1 1"}, {"input": "5\n1 1 1 1 1", "output": "1 1 1"}],
         ),
@@ -679,7 +693,10 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
             expected_output="6 15 24\n12 15 18",
             constraints="Fixed 3x3 matrix.",
             input_format="Three lines, each three integers.",
-            output_format="Line 1: row sums space-separated. Line 2: column sums space-separated.",
+            output_format=(
+                "Formula: row i sum = A[i][0]+A[i][1]+A[i][2]; col j sum = A[0][j]+A[1][j]+A[2][j]. "
+                "Line 1: row sums space-separated. Line 2: column sums space-separated."
+            ),
             examples=[{"input": "1 1 1\n1 1 1\n1 1 1", "output": "3 3 3\n3 3 3"}],
             tests=[
                 {"input": "1 2 3\n4 5 6\n7 8 9", "output": "6 15 24\n12 15 18"},
@@ -691,7 +708,7 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
             expected_output="1 4 7\n2 5 8\n3 6 9",
             constraints="Fixed 3x3 matrix.",
             input_format="Three lines, each three integers.",
-            output_format="Print transpose (3 lines).",
+            output_format="Formula: B[j][i] = A[i][j]. Print B as three lines.",
             examples=[{"input": "1 0 0\n0 1 0\n0 0 1", "output": "1 0 0\n0 1 0\n0 0 1"}],
             tests=[
                 {"input": "1 2 3\n0 0 0\n7 8 9", "output": "1 0 7\n2 0 8\n3 0 9"},
@@ -704,7 +721,7 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
             expected_output="Yes",
             constraints="3x3 integer matrix.",
             input_format="Three lines, each three integers.",
-            output_format="Print Yes if symmetric (A[i][j]==A[j][i]), else No.",
+            output_format="Formula: symmetric iff A[i][j]==A[j][i] for all i,j in {0,1,2}. Print Yes or No.",
             examples=[{"input": "1 0 0\n0 1 0\n0 0 1", "output": "Yes"}],
             tests=[
                 {"input": "1 0 0\n0 1 0\n0 0 1", "output": "Yes"},
@@ -718,7 +735,7 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
             constraints="1 <= n <= 10^5",
             input_format="Line 1: n. Line 2: n integers.",
             output_format=(
-                "Count elements strictly greater than floor(average); average = floor(sum/n)."
+                "Formula: avg = floor(sum/n); count values strictly greater than avg. Print that count."
             ),
             examples=[{"input": "4\n1 2 3 4", "output": "2"}, {"input": "5\n2 2 2 2 8", "output": "1"}],
             tests=[
@@ -732,7 +749,9 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
             expected_output="1\n1 1\n1 2 1",
             constraints="1 <= n <= 12",
             input_format="One integer n = number of rows.",
-            output_format="Print Pascal triangle: row i has i integers, space-separated.",
+            output_format=(
+                "Formula: C(r,0)=C(r,r)=1; C(r,c)=C(r-1,c-1)+C(r-1,c). Print first n rows, space-separated per row."
+            ),
             examples=[{"input": "4", "output": "1\n1 1\n1 2 1\n1 3 3 1"}, {"input": "3", "output": "1\n1 1\n1 2 1"}],
             tests=[{"input": "1", "output": "1"}, {"input": "2", "output": "1\n1 1"}, {"input": "5", "output": "1\n1 1\n1 2 1\n1 3 3 1\n1 4 6 4 1"}],
         ),
@@ -783,7 +802,7 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
             expected_output="Yes",
             constraints="0 <= n <= 10^9",
             input_format="One integer n (no leading zeros except single 0).",
-            output_format="Print Yes if decimal digits read same forward/backward, else No.",
+            output_format="Formula: palindrome iff n equals reverse(n) in decimal. Print Yes or No.",
             examples=[{"input": "123", "output": "No"}, {"input": "121", "output": "Yes"}],
             tests=[{"input": "0", "output": "Yes"}, {"input": "1221", "output": "Yes"}, {"input": "10", "output": "No"}],
         ),
@@ -792,7 +811,7 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
             expected_output="Yes",
             constraints="1 <= n <= 10^6",
             input_format="One integer n.",
-            output_format="Print Yes if sum of factorials of digits equals n, else No.",
+            output_format="Formula: strong iff n = sum over each decimal digit d of (d!). Print Yes or No.",
             examples=[{"input": "145", "output": "Yes"}, {"input": "123", "output": "No"}],
             tests=[
                 {"input": "1", "output": "Yes"},
