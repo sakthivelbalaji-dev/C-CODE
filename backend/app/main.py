@@ -37,6 +37,31 @@ ASSETS_DIR = DIST_DIR / "assets"
 INDEX_FILE = DIST_DIR / "index.html"
 ADMIN_FILE = DIST_DIR / "admin.html"
 
+_DIST_ROOT_STATIC_SUFFIXES = (
+    ".svg",
+    ".ico",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".webp",
+    ".gif",
+    ".webmanifest",
+    ".txt",
+)
+
+
+def _file_under_dist_or_none(relative_url_path: str) -> Path | None:
+    """Resolve a URL path to a file under ``DIST_DIR`` (no path traversal), or None."""
+    rel = (relative_url_path or "").replace("\\", "/").strip("/")
+    if not rel:
+        return None
+    candidate = (DIST_DIR / rel).resolve()
+    try:
+        candidate.relative_to(DIST_DIR.resolve())
+    except ValueError:
+        return None
+    return candidate if candidate.is_file() else None
+
 
 def _skip_frontend_prepare() -> bool:
     return os.getenv("SKIP_FRONTEND_BUILD", "").strip().lower() in ("1", "true", "yes")
@@ -457,6 +482,23 @@ async def serve_spa(full_path: str):
     """SPA deep links (/login etc.); `/api/*` stays on API router (avoid catching unknown API paths here)."""
     if full_path.startswith("api"):
         raise HTTPException(status_code=404, detail="API route not found")
+
+    norm = full_path.replace("\\", "/").strip("/")
+    # Do not return `index.html` for real static files. Serving HTML for a missing
+    # `/assets/*.js` request (e.g. mount skipped or stale deploy) breaks the module
+    # graph and shows a blank page after reload.
+    if norm == "assets" or norm.startswith("assets/"):
+        asset = _file_under_dist_or_none(norm)
+        if asset is not None:
+            return FileResponse(str(asset))
+        raise HTTPException(status_code=404, detail="Asset not found")
+
+    low = norm.lower()
+    if any(low.endswith(sfx) for sfx in _DIST_ROOT_STATIC_SUFFIXES):
+        root_file = _file_under_dist_or_none(norm)
+        if root_file is not None:
+            return FileResponse(str(root_file))
+
     if INDEX_FILE.is_file():
         return FileResponse(str(INDEX_FILE))
     return {"status": "ok", "message": "C Code Lab backend is running"}
