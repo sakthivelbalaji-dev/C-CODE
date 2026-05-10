@@ -236,7 +236,7 @@ STUDENT_METADATA: dict[str, dict[str, str]] = {
         "functions": "`for`/`while`; break semantics; tally.",
     },
     "is even function loop": {
-        "constraints": "Upper bound counting evens inclusively downward.",
+        "constraints": "1 <= n <= 10^4. If n < 2, print no numbers (empty stdout). Otherwise print every even integer from 2 through n, in order, separated by single spaces.",
         "algorithm": "`if (!(i%2))` collect even sequence from 2..n spaced.",
         "functions": "Helper `unsigned isEven_like` conceptual or inline check.",
     },
