@@ -17,11 +17,16 @@ function getCurrentUser() {
   }
 }
 
+/** Staff and admin roles use the admin area; backend uses both for elevated access. */
+function isStaffLikeRole(role) {
+  return role === 'staff' || role === 'admin'
+}
+
 function ProtectedRoute({ children, allowedRoles }) {
   const user = getCurrentUser()
   if (!user) return <Navigate to="/login" replace />
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return <Navigate to={user.role === 'staff' ? '/admin' : '/dashboard'} replace />
+    return <Navigate to={isStaffLikeRole(user.role) ? '/admin' : '/dashboard'} replace />
   }
   return children
 }
@@ -29,7 +34,7 @@ function ProtectedRoute({ children, allowedRoles }) {
 function PublicOnlyRoute({ children }) {
   const user = getCurrentUser()
   if (!user) return children
-  return <Navigate to={user.role === 'staff' ? '/admin' : '/dashboard'} replace />
+  return <Navigate to={isStaffLikeRole(user.role) ? '/admin' : '/dashboard'} replace />
 }
 
 function App() {
@@ -71,7 +76,7 @@ function App() {
       <Route
         path="/admin"
         element={
-          <ProtectedRoute allowedRoles={['staff']}>
+          <ProtectedRoute allowedRoles={['staff', 'admin']}>
             <AdminPage />
           </ProtectedRoute>
         }
@@ -95,7 +100,7 @@ function App() {
       <Route
         path="/leaderboard"
         element={
-          <ProtectedRoute allowedRoles={['student', 'staff']}>
+          <ProtectedRoute allowedRoles={['student', 'staff', 'admin']}>
             <LeaderboardPage />
           </ProtectedRoute>
         }

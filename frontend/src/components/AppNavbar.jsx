@@ -21,8 +21,10 @@ function AppNavbar() {
     user = null
   }
 
+  const staffLike = user?.role === 'staff' || user?.role === 'admin'
+
   const filteredNavItems = navItems.filter((item) => {
-    if (user?.role === 'staff') {
+    if (staffLike) {
       return item.path === '/admin' || item.path === '/leaderboard'
     }
     if (item.path === '/admin') return false
@@ -46,10 +48,10 @@ function AppNavbar() {
   return (
     <header className="sticky top-0 z-20 border-b border-brand-line bg-brand-surface/95 backdrop-blur">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-3 md:px-6">
-        <Link to={user?.role === 'staff' ? '/admin' : '/dashboard'} className="text-lg font-semibold text-brand-neonBlue">
+        <Link to={staffLike ? '/admin' : '/dashboard'} className="text-lg font-semibold text-brand-neonBlue">
           C Code Lab
         </Link>
-        <nav className="hidden gap-2 md:flex">
+        <nav className="flex max-w-[70%] flex-wrap items-center justify-end gap-1.5 sm:max-w-none sm:gap-2 md:flex-nowrap">
           {filteredNavItems.map((item) => {
             const isActive = location.pathname === item.path
             return (

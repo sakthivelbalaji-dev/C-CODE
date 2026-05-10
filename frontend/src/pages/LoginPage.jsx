@@ -67,7 +67,7 @@ function LoginPage() {
         throw new Error('Unexpected server response. Please try again.')
       }
       localStorage.setItem('ccodelab_user', JSON.stringify(data))
-      navigate(data.role === 'staff' ? '/admin' : '/dashboard')
+      navigate(data.role === 'staff' || data.role === 'admin' ? '/admin' : '/dashboard')
     } catch (error) {
       if (error instanceof TypeError) {
         setMessage('Cannot reach backend API. Start both servers with: npm run dev:full')
