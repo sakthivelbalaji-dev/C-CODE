@@ -600,19 +600,13 @@ function QuestionPage() {
   }, [question])
 
   /**
-   * Next question in syllabus order (not “next unsolved”) — used after timed auto-submit.
+   * Next question — immediate successor in syllabus order (same ordering as Previous / catalog).
    * @returns {Promise<{ ok: boolean, noNext: boolean, retryable: boolean }>}
    */
   const advanceToSyllabusNextQuestion = async (fromQuestionId) => {
     try {
       const user = currentUser || readPersistedStudentPayload()
-      const sid =
-        typeof user?.id === 'number' && user?.role !== 'staff' ? user.id : null
-      const nextPath =
-        sid != null
-          ? `/questions/${fromQuestionId}/syllabus-next?student_id=${sid}`
-          : `/questions/${fromQuestionId}/syllabus-next`
-      const res = await fetch(apiUrl(nextPath))
+      const res = await fetch(apiUrl(`/questions/${fromQuestionId}/syllabus-next`))
       const body = await parseResponseJson(res)
       if (!res.ok || !body?.id) {
         const noNext = res.status === 404
@@ -1026,7 +1020,7 @@ function QuestionPage() {
         setOutputConsole('Moved to the next syllabus question.')
         setShowTryAgainHint(false)
       } else if (nav.noNext) {
-        setOutputConsole('You are on the last question in this syllabus order (or no unsolved questions left).')
+        setOutputConsole('You are on the last question in this syllabus order.')
       } else {
         setOutputConsole('Could not open the next question. Try again shortly.')
       }
@@ -1363,7 +1357,7 @@ function QuestionPage() {
             <button
               type="button"
               disabled={isProcessing || nextLoading || prevLoading || !question?.id}
-              title="Go to the next question in syllabus order (skips questions you already solved when signed in)"
+              title="Go to the next question in syllabus order"
               onClick={() => void handleNextSyllabusClick()}
               className="rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-semibold text-slate-900 shadow-[0_0_20px_-4px_rgba(245,158,11,0.55)] transition hover:brightness-110 disabled:opacity-50"
             >
