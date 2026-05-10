@@ -232,8 +232,22 @@
           );
         }
 
+        /** True only when the student coding shell is mounted (not /, /dashboard, etc.). */
+        function isStudentCodingPath() {
+          var path = (location.pathname || "").replace(/\\/g, "/").toLowerCase();
+          if (path === "/question") return true;
+          return /^\/questions\/\d+/.test(path) || /^\/question\/\d+/.test(path);
+        }
+
+        /**
+         * Only treat Monaco inside #root as the app editor.
+         * The loader/worker may append .monaco-editor outside #root — that incorrectly armed
+         * the question gate, froze performance.now(), and prevented React from painting (blank page).
+         */
         function hasMonacoEditor() {
-          return !!document.querySelector(".monaco-editor");
+          var root = document.getElementById("root");
+          if (!root) return false;
+          return !!root.querySelector(".monaco-editor");
         }
 
         function editorHeaderActionsRow() {
@@ -656,7 +670,7 @@
         }
 
         function maybeArmGateForCodingView() {
-          if (isAuthLikePath() || !hasMonacoEditor()) {
+          if (isAuthLikePath() || !hasMonacoEditor() || !isStudentCodingPath()) {
             releaseQuestionGateQuiet();
             armedGeneration = -1;
             resetTimerChipIdleUi();
@@ -754,7 +768,7 @@
           var hadMonaco = false;
           var mo = new MutationObserver(function () {
             var has = hasMonacoEditor();
-            if (has && !hadMonaco && !isAuthLikePath()) {
+            if (has && !hadMonaco && !isAuthLikePath() && isStudentCodingPath()) {
               hadMonaco = true;
               bumpMonacoGeneration();
             }
