@@ -21,7 +21,7 @@ def subst(old: str, new: str, label: str) -> None:
 subst(
     "let ie=async e=>{try{let t=await fetch(Qn(`/questions/${e}/syllabus-next`)),r=await Wi(t);",
     "let ie=async e=>{try{let sr=l?.role!==`staff`&&l?.id!=null?"
-    "`?student_id=${l.id}`:``;"
+    "?`?student_id=${l.id}`:``;"
     "let t=await fetch(Qn(`/questions/${e}/syllabus-next${sr}`)),r=await Wi(t);",
     "ie() syllabus-next",
 )
