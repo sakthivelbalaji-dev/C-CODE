@@ -45,38 +45,19 @@ def problem_display_title(canonical_template_key: str) -> str:
     return k.replace("_", " ").strip().title()
 
 
-def _compose_student_description(
-    module_name: str,
-    topic: str,
-    label: str,
-    template: dict,
-) -> str:
+def _compose_student_description(module_name: str, topic: str, label: str) -> str:
     """
-    Student-facing problem text: state WHAT to implement using the same I/O rules as the grader,
-    not vague meta-instructions like “read stdin and run”.
+    Brief problem statement only. Input format, output format, and constraints are stored in their
+    own Question fields and shown separately in the UI—they are not repeated here.
     """
-    inf = (template.get("input_format") or "").strip()
-    outf = (template.get("output_format") or "").strip()
-    cons = (template.get("constraints") or "").strip()
     return (
-        f"{label}\n"
-        "\n"
-        "Your program must implement the behavior below. Follow the input layout, the output layout, "
-        "and the limits so your answer matches the official samples and hidden tests.\n"
-        "\n"
-        "INPUT (stdin)\n"
-        f"{inf}\n"
-        "\n"
-        "OUTPUT (stdout)\n"
-        f"{outf}\n"
-        "\n"
-        "CONSTRAINTS\n"
-        f"{cons}\n"
-        "\n"
-        "Use only standard input and standard output. Do not print prompts, labels, or debug text "
-        "unless the output format explicitly requires it.\n"
-        "\n"
-        f"(Syllabus placement: {module_name} — {topic}.)"
+        f"{label}\n\n"
+        "Write a correct C program for this task. The Input format, Output format, and Constraints "
+        "fields on this page are the full specification for what to read, what to print, and the "
+        "limits—this problem statement does not repeat them.\n\n"
+        "Use standard input and standard output only. Do not print prompts, labels, or debug text "
+        "unless the output format section explicitly requires it.\n\n"
+        f"Syllabus: {module_name} — {topic}."
     )
 
 
@@ -886,7 +867,7 @@ def build_problem_content(module_name: str, topic: str, example: str) -> dict:
     _apply_student_layer(template, key)
 
     label = problem_display_title(key)
-    template["description"] = _compose_student_description(module_name, topic, label, template)
+    template["description"] = _compose_student_description(module_name, topic, label)
     return template
 
 

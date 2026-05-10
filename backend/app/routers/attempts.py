@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Attempt, Question, Student
 from ..schemas import AttemptCreate, AttemptDetailOut, AttemptOut, LeaderboardEntry
-from ..syllabus import question_syllabus_sort_key
 
 router = APIRouter(prefix="/attempts", tags=["attempts"])
 
@@ -94,39 +93,10 @@ def create_attempt(payload: AttemptCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(attempt)
 
+    # After a full pass, stay on this question so students can review code; they use the UI
+    # (e.g. syllabus / next control) to move on. Client only auto-navigates when both flags are set.
     next_question_id = None
     should_move_next = False
-    if attempt.is_correct:
-        solved_question_ids = {
-            question_id
-            for (question_id,) in (
-                db.query(Attempt.question_id)
-                .filter(
-                    Attempt.student_id == attempt.student_id,
-                    Attempt.is_correct.is_(True),
-                )
-                .distinct()
-                .all()
-            )
-        }
-        ordered_questions = sorted(
-            db.query(Question).all(),
-            key=question_syllabus_sort_key,
-        )
-        ordered_question_ids = [row.id for row in ordered_questions]
-        if ordered_question_ids:
-            try:
-                current_index = ordered_question_ids.index(attempt.question_id)
-            except ValueError:
-                current_index = -1
-
-            total_questions = len(ordered_question_ids)
-            for step in range(1, total_questions + 1):
-                candidate_id = ordered_question_ids[(current_index + step) % total_questions]
-                if candidate_id not in solved_question_ids:
-                    next_question_id = candidate_id
-                    should_move_next = True
-                    break
 
     return AttemptOut(
         id=attempt.id,
