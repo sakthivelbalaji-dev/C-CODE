@@ -2,15 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import AppNavbar from '../components/AppNavbar'
 import { apiUrl } from '../lib/api'
 
-function minutesBetween(startIso, endIso) {
-  const start = new Date(startIso).getTime()
-  const end = new Date(endIso).getTime()
-  if (!Number.isFinite(start) || !Number.isFinite(end)) return null
-  const delta = Math.max(0, end - start)
-  const mins = delta / 60000
-  return mins < 1 ? '<1' : mins.toFixed(1)
-}
-
 function readStaffUser() {
   try {
     const raw = localStorage.getItem('ccodelab_user')
@@ -222,51 +213,37 @@ export default function AdminPage() {
     }
   }, [attempts, students.length, questions.length])
 
-  const questionProgressRows = useMemo(() => {
+  /** One row per student: how many distinct questions passed (≥1 correct attempt) vs total in bank. */
+  const studentCompletionSummary = useMemo(() => {
     if (!students.length || !questions.length) return []
-
-    const attemptByStudentQuestion = new Map()
+    const totalQuestions = questions.length
+    const solvedQuestionIdsByStudent = new Map()
     for (const attempt of attempts) {
-      const key = `${attempt.student_id}::${attempt.question_id}`
-      if (!attemptByStudentQuestion.has(key)) {
-        attemptByStudentQuestion.set(key, [])
+      if (!attempt.is_correct) continue
+      const sid = attempt.student_id
+      if (!solvedQuestionIdsByStudent.has(sid)) {
+        solvedQuestionIdsByStudent.set(sid, new Set())
       }
-      attemptByStudentQuestion.get(key).push(attempt)
+      solvedQuestionIdsByStudent.get(sid).add(attempt.question_id)
     }
 
-    for (const list of attemptByStudentQuestion.values()) {
-      list.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-    }
-
-    const rows = []
-    for (const student of students) {
-      for (const question of questions) {
-        const key = `${student.id}::${question.id}`
-        const grouped = attemptByStudentQuestion.get(key) || []
-        const firstAttempt = grouped[0] || null
-        const firstCorrect = grouped.find((item) => item.is_correct) || null
-        const completed = Boolean(firstCorrect)
-        let minutesTaken = '-'
-        if (completed && firstAttempt && firstCorrect) {
-          minutesTaken = minutesBetween(firstAttempt.created_at, firstCorrect.created_at) ?? '-'
-        }
-
-        let statusLabel = 'Not Started'
-        if (completed) statusLabel = 'Completed'
-        else if (grouped.length > 0) statusLabel = 'In Progress'
-
-        rows.push({
-          studentId: student.id,
-          studentName: student.name || 'Student',
-          studentEmail: student.email,
-          questionId: question.id,
-          questionTitle: question.title,
-          statusLabel,
-          minutesTaken,
-          attemptsCount: grouped.length,
-        })
+    const rows = students.map((student) => {
+      const solved = solvedQuestionIdsByStudent.get(student.id) || new Set()
+      const completedCount = solved.size
+      const pct =
+        totalQuestions > 0 ? Math.min(100, Math.round((completedCount / totalQuestions) * 100)) : 0
+      return {
+        studentId: student.id,
+        studentName: student.name || 'Student',
+        completedCount,
+        totalQuestions,
+        pct,
       }
-    }
+    })
+    rows.sort(
+      (a, b) =>
+        b.completedCount - a.completedCount || a.studentName.localeCompare(b.studentName, undefined, { sensitivity: 'base' }),
+    )
     return rows
   }, [students, questions, attempts])
 
@@ -332,45 +309,48 @@ export default function AdminPage() {
             <section className="rounded-2xl border border-brand-line bg-brand-surface p-5">
               <h2 className="text-lg font-semibold">Student Question Completion</h2>
               <p className="mt-1 text-sm text-brand-muted">
-                For every student and every question: completed/not completed and minutes to finish.
+                Each row is one student. <strong className="text-brand-text/90">Completed</strong> counts questions with at least
+                one <span className="text-brand-neonGreen">fully correct</span> attempt, out of{' '}
+                <strong className="text-brand-text/90">{summary.totalQuestions || questions.length}</strong> questions in the bank.
               </p>
               <div className="mt-4 overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead className="text-brand-muted">
                     <tr>
                       <th className="pb-2">Student</th>
-                      <th className="pb-2">Email</th>
-                      <th className="pb-2">Question</th>
-                      <th className="pb-2">Status</th>
-                      <th className="pb-2">Minutes To Complete</th>
-                      <th className="pb-2">Attempts</th>
+                      <th className="pb-2">Completed</th>
+                      <th className="pb-2">Progress</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {questionProgressRows.map((row) => (
-                      <tr key={`${row.studentId}-${row.questionId}`} className="border-t border-brand-line">
-                        <td className="py-3">{row.studentName}</td>
-                        <td className="py-3">{row.studentEmail}</td>
-                        <td className="py-3">{row.questionTitle}</td>
-                        <td
-                          className={`py-3 ${
-                            row.statusLabel === 'Completed'
-                              ? 'text-brand-neonGreen'
-                              : row.statusLabel === 'In Progress'
-                                ? 'text-amber-300'
-                                : 'text-brand-muted'
-                          }`}
-                        >
-                          {row.statusLabel}
+                    {studentCompletionSummary.map((row) => (
+                      <tr key={row.studentId} className="border-t border-brand-line">
+                        <td className="py-3 font-medium text-brand-text">{row.studentName}</td>
+                        <td className="py-3 tabular-nums text-brand-text">
+                          <span className="text-brand-neonGreen">{row.completedCount}</span>
+                          <span className="text-brand-muted"> / {row.totalQuestions}</span>
                         </td>
-                        <td className="py-3">{row.minutesTaken}</td>
-                        <td className="py-3">{row.attemptsCount}</td>
+                        <td className="py-3">
+                          <div className="flex min-w-[140px] items-center gap-3">
+                            <div className="h-2 flex-1 overflow-hidden rounded-full bg-black/30 ring-1 ring-white/10">
+                              <div
+                                className="h-full rounded-full bg-gradient-to-r from-brand-neonBlue/90 to-brand-neonGreen/90"
+                                style={{ width: `${row.pct}%` }}
+                              />
+                            </div>
+                            <span className="w-10 shrink-0 tabular-nums text-xs text-brand-muted">{row.pct}%</span>
+                          </div>
+                        </td>
                       </tr>
                     ))}
-                    {questionProgressRows.length === 0 && (
+                    {studentCompletionSummary.length === 0 && (
                       <tr className="border-t border-brand-line">
-                        <td className="py-3 text-brand-muted" colSpan={6}>
-                          No progress rows available yet.
+                        <td className="py-3 text-brand-muted" colSpan={3}>
+                          {students.length === 0
+                            ? 'No students loaded.'
+                            : questions.length === 0
+                              ? 'No questions in the bank.'
+                              : 'No completion data yet.'}
                         </td>
                       </tr>
                     )}
