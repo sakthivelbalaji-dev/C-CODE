@@ -1,6 +1,4 @@
-import { useState } from 'react'
-import { useEffect } from 'react'
-import { useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import Editor from '@monaco-editor/react'
 import AppNavbar from '../components/AppNavbar'
@@ -39,6 +37,12 @@ function formatCountdown(totalSeconds) {
   const m = Math.floor(sec / 60)
   const s = sec % 60
   return `${m}:${String(s).padStart(2, '0')}`
+}
+
+/** Module/title Q label (e.g. Q3) — distinct from global syllabus position. */
+function labQFromTitle(title) {
+  const m = (title || '').match(/\bQ\s*([0-9]+)\b/i)
+  return m ? `Q${m[1]}` : null
 }
 
 function readPersistedStudentPayload() {
@@ -136,6 +140,50 @@ function QuestionPage() {
   const [prevLoading, setPrevLoading] = useState(false)
   /** Students: false until Start — then timer runs and editor unlocks. Staff always unlocked. */
   const [attemptStarted, setAttemptStarted] = useState(false)
+  /** Full question bank in server syllabus order (GET /questions/ without filters). */
+  const [syllabusCatalog, setSyllabusCatalog] = useState([])
+  /** Question IDs with at least one correct graded attempt (synced from API). */
+  const [solvedQuestionIds, setSolvedQuestionIds] = useState(() => new Set())
+
+  const refreshSolvedProgress = useCallback(async () => {
+    const u = currentUser || readPersistedStudentPayload()
+    if (!u?.id || u.role === 'staff') {
+      setSolvedQuestionIds(new Set())
+      return
+    }
+    try {
+      const r = await fetch(apiUrl(`/attempts/?student_id=${u.id}`))
+      if (!r.ok) return
+      const attempts = await r.json()
+      const ids = new Set(
+        Array.isArray(attempts) ? attempts.filter((a) => a.is_correct).map((a) => a.question_id) : [],
+      )
+      setSolvedQuestionIds(ids)
+    } catch {
+      /* keep prior set */
+    }
+  }, [currentUser])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const r = await fetch(apiUrl('/questions/'))
+        if (cancelled || !r.ok) return
+        const data = await r.json()
+        if (Array.isArray(data)) setSyllabusCatalog(data)
+      } catch {
+        /* ignore */
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    void refreshSolvedProgress()
+  }, [refreshSolvedProgress])
 
   useEffect(() => {
     compileDecorIdsRef.current = clearCompileFeedback(
@@ -862,6 +910,10 @@ function QuestionPage() {
           if (saveResponse.ok) {
             attemptData = await saveResponse.json()
             localStorage.setItem('ccodelab_latest_attempt', JSON.stringify(attemptData))
+            if (allTestsPassed && question.id) {
+              setSolvedQuestionIds((prev) => new Set([...prev, question.id]))
+            }
+            void refreshSolvedProgress()
           }
         }
 
@@ -1023,6 +1075,15 @@ function QuestionPage() {
   const isStaffUser = sessionUser?.role === 'staff'
   const gateLocked = !isStaffUser && !attemptStarted
 
+  const labQ = labQFromTitle(question.title)
+  const syllabusIdx =
+    question?.id != null ? syllabusCatalog.findIndex((q) => q.id === question.id) : -1
+  const syllabusPosition = syllabusIdx >= 0 ? syllabusIdx + 1 : 0
+  const syllabusTotal = syllabusCatalog.length
+  const showSyllabusOrder = syllabusPosition > 0 && syllabusTotal > 0
+  const isQuestionCompleted =
+    !isStaffUser && question?.id != null && solvedQuestionIds.has(question.id)
+
   return (
     <main className="min-h-screen bg-brand-bg">
       <AppNavbar />
@@ -1031,9 +1092,26 @@ function QuestionPage() {
           className={`scrollbar-workspace ${panelClass} lg:max-h-[calc(100dvh-5.25rem)] lg:overflow-y-auto lg:pr-1`}
         >
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-            <span className="rounded-full bg-brand-neonBlue/15 px-3.5 py-1.5 text-xs font-medium capitalize tracking-wide text-brand-neonBlue ring-1 ring-brand-neonBlue/25">
-              {difficulty}
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-brand-neonBlue/15 px-3.5 py-1.5 text-xs font-medium capitalize tracking-wide text-brand-neonBlue ring-1 ring-brand-neonBlue/25">
+                {difficulty}
+              </span>
+              {showSyllabusOrder && (
+                <span
+                  title="Order matches the full lab syllabus (all difficulties)"
+                  className="rounded-full bg-brand-card/80 px-3 py-1.5 text-[11px] font-medium tabular-nums text-brand-text ring-1 ring-brand-line/55"
+                >
+                  Question {syllabusPosition}
+                  <span className="text-brand-muted"> / {syllabusTotal}</span>
+                  {labQ && <span className="text-brand-muted"> · {labQ}</span>}
+                </span>
+              )}
+              {isQuestionCompleted && (
+                <span className="rounded-full bg-emerald-500/15 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-emerald-300 ring-1 ring-emerald-400/40">
+                  Completed
+                </span>
+              )}
+            </div>
             <select
               value={difficulty}
               onChange={(event) => setDifficulty(event.target.value)}
