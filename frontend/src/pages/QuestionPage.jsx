@@ -17,7 +17,12 @@ async function parseResponseJson(response) {
   }
 }
 
-const defaultCode = ''
+const defaultCode = `#include <stdio.h>
+
+int main() {
+    return 0;
+}
+`
 
 const DEFAULT_ALGORITHM =
   'Read the inputs in order, apply the logic the statement describes, and print exactly like the samples.'
@@ -434,9 +439,9 @@ function QuestionPage() {
               }
               if (user?.id) {
                 const draftKey = `ccodelab_draft_${user.id}_${q.id}`
-                setCode(localStorage.getItem(draftKey) ?? '')
+                setCode(localStorage.getItem(draftKey) ?? defaultCode)
               } else {
-                setCode('')
+                setCode(defaultCode)
               }
               setOutputConsole(
                 retryOnly
@@ -472,7 +477,7 @@ function QuestionPage() {
               const draftKey = `ccodelab_draft_${user.id}_${q.id}`
               const savedCode = localStorage.getItem(draftKey)
               if (!cancelled) {
-                setCode(savedCode ?? '')
+                setCode(savedCode ?? defaultCode)
                 setOutputConsole('Continuing where you left off.')
               }
               return
@@ -557,7 +562,9 @@ function QuestionPage() {
 
         if (user?.id) {
           const draftKey = `ccodelab_draft_${user.id}_${pick.id}`
-          setCode(localStorage.getItem(draftKey) ?? '')
+          setCode(localStorage.getItem(draftKey) ?? defaultCode)
+        } else {
+          setCode(defaultCode)
         }
       } catch {
         /* ignore */
@@ -642,9 +649,9 @@ function QuestionPage() {
 
       if (user?.id) {
         const nextDraftKey = `ccodelab_draft_${user.id}_${body.id}`
-        setCode(localStorage.getItem(nextDraftKey) ?? '')
+        setCode(localStorage.getItem(nextDraftKey) ?? defaultCode)
       } else {
-        setCode('')
+        setCode(defaultCode)
       }
       setCustomInput('')
       return { ok: true, noNext: false, retryable: false }
@@ -698,9 +705,9 @@ function QuestionPage() {
 
       if (user?.id) {
         const draftKey = `ccodelab_draft_${user.id}_${body.id}`
-        setCode(localStorage.getItem(draftKey) ?? '')
+        setCode(localStorage.getItem(draftKey) ?? defaultCode)
       } else {
-        setCode('')
+        setCode(defaultCode)
       }
       setCustomInput('')
       return { ok: true, noPrev: false, retryable: false }
